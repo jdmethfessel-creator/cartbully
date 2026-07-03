@@ -1,101 +1,85 @@
-import Image from "next/image";
+import PaperSurface from "@/components/PaperSurface";
+import StickyNote from "@/components/StickyNote";
+import Wordmark from "@/components/Wordmark";
+import HomeForm from "@/components/HomeForm";
+import { recentVerdicts, tallyForToday } from "@/lib/store";
+import Link from "next/link";
 
-export default function Home() {
+const slogans = [
+  "Finally, a bully on your side.",
+  "It picks on your cart, not you.",
+  "Protecting your lunch money since day one.",
+];
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [tally, recent] = await Promise.all([tallyForToday(), recentVerdicts(6)]);
+  const slogan = slogans[Math.floor(Math.random() * slogans.length)];
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <PaperSurface withHoles>
+      <header className="flex items-start justify-between px-5">
+        <Wordmark size="md" />
+        <StickyNote rotate={7} className="text-sm">put it back.</StickyNote>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <section className="px-5 pt-8">
+        <h1 className="font-marker text-4xl leading-tight text-ink" style={{ transform: "rotate(-1deg)" }}>
+          What&apos;s the cart <br /> trying to pull <span className="text-marker">now?</span>
+        </h1>
+        <p className="mt-3 text-inkSoft">Paste a link. Get roasted. Save the money.</p>
+      </section>
+
+      <section className="px-5 pt-6">
+        <HomeForm />
+      </section>
+
+      <section className="px-5 pt-10">
+        <h2 className="font-marker text-2xl text-ink">Today&apos;s victims</h2>
+        <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+          <TallyCell label="TRASHED" value={tally.trashed} color="text-marker" />
+          <TallyCell label="SPARED" value={tally.spared} color="text-spared" />
+          <TallyCell label="SWAPPED" value={tally.swapped} color="text-swap" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {recent.length > 0 && (
+        <section className="px-5 pt-8">
+          <h3 className="font-marker text-xl">Recent beatdowns</h3>
+          <ul className="mt-2 space-y-2">
+            {recent.map((r) => (
+              <li key={r.id} className="border-b border-dashed border-ink/20 pb-2">
+                <Link href={`/b/${r.id}`} className="flex items-center gap-2">
+                  <span
+                    className={`font-marker text-sm ${
+                      r.verdict === "TRASHED" ? "text-marker" : "text-spared"
+                    }`}
+                  >
+                    {r.verdict}
+                  </span>
+                  <span className="text-sm text-ink line-clamp-1">{r.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <footer className="px-5 pt-12 pb-8 text-center">
+        <p className="font-marker text-inkSoft text-lg" style={{ transform: "rotate(-1deg)" }}>
+          {slogan}
+        </p>
       </footer>
+    </PaperSurface>
+  );
+}
+
+function TallyCell({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="rounded border-2 border-ink/20 bg-paper py-3">
+      <div className={`font-marker text-3xl ${color}`}>{value}</div>
+      <div className="text-xs uppercase tracking-widest text-inkSoft">{label}</div>
     </div>
   );
 }
