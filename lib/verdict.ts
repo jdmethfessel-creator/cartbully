@@ -138,9 +138,17 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
     console.log("verdict: JSON parse failed. raw=", text.slice(0, 200));
     return stubVerdict(input);
   }
+  // Soft-normalize before validation so the model doesn't fall to stub for length overshoots.
+  if (parsed && typeof parsed === "object") {
+    const p = parsed as { roast?: unknown; category?: unknown };
+    if (typeof p.roast === "string" && p.roast.length > 240) {
+      p.roast = p.roast.slice(0, 217).trimEnd() + "...";
+    }
+    if (typeof p.category !== "string") p.category = "misc";
+  }
   const check = verdictSchema.safeParse(parsed);
   if (!check.success) {
-    console.log("verdict: schema fail", check.error.message.slice(0, 200));
+    console.log("verdict: schema fail", check.error.message.slice(0, 240));
     return stubVerdict(input);
   }
   return check.data;
