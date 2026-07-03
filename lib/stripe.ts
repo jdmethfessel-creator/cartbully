@@ -1,0 +1,21 @@
+import Stripe from "stripe";
+
+let stripe: Stripe | null = null;
+
+export function getStripe(): Stripe | null {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  if (!stripe) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-06-20" as unknown as Stripe.LatestApiVersion,
+    });
+  }
+  return stripe;
+}
+
+export function stripeConfigured(): boolean {
+  return Boolean(
+    process.env.STRIPE_SECRET_KEY &&
+      process.env.STRIPE_PRICE_ID &&
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  );
+}
