@@ -4,7 +4,8 @@ import { extractProduct, normalizeUrl } from "@/lib/extractor";
 import { runVerdict, verdictSchema, VerdictJson } from "@/lib/verdict";
 import { findCachedVerdict, saveVerdict, repeatCountFor, logEvent } from "@/lib/store";
 import { anonKey, mintAnonId } from "@/lib/anonId";
-import { MEANNESS_DEFAULT, Meanness } from "@/config";
+import { supabaseService } from "@/lib/supabase";
+import { FREE_BEATDOWNS, MEANNESS_DEFAULT, Meanness } from "@/config";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,23 @@ export async function POST(req: NextRequest) {
   if (cached) {
     await logEvent("verdict_run", { url: normalized, meanness, source: "cache" });
     return NextResponse.json({ id: cached.id, verdict: cached, cached: true });
+  }
+
+  // Server-side free-limit gate. Runs when Supabase is configured and the
+  // caller is anonymous (no user:<uid> combined key). Cached repeats above
+  // are always free, so this counts distinct fresh verdicts only.
+  const isAnon = combined.startsWith("anon:") || combined.startsWith("fp:");
+  if (isAnon) {
+    const sb = supabaseService();
+    if (sb) {
+      const { count } = await sb
+        .from("verdicts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_or_anon_key", combined);
+      if ((count ?? 0) >= FREE_BEATDOWNS) {
+        return NextResponse.json({ error: "paywall", limit: FREE_BEATDOWNS }, { status: 402 });
+      }
+    }
   }
 
   const localHour = new Date().getHours();

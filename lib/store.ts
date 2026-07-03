@@ -38,6 +38,13 @@ function newId() {
   return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6);
 }
 
+// Postgres numeric columns arrive as strings via supabase-js. Normalize them
+// on the read path so callers can treat price as a number without ceremony.
+function coerce(v: StoredVerdict | null | undefined): StoredVerdict | null {
+  if (!v) return null;
+  return { ...v, price: typeof v.price === "string" ? Number(v.price) : v.price };
+}
+
 export async function findCachedVerdict(
   url: string,
   meanness: string
@@ -86,9 +93,9 @@ export async function getVerdictById(id: string): Promise<StoredVerdict | null> 
   const sb = supabaseService();
   if (sb) {
     const { data } = await sb.from("verdicts").select("*").eq("id", id).maybeSingle();
-    if (data) return data as StoredVerdict;
+    if (data) return coerce(data as StoredVerdict);
   }
-  return memory.get(id) || null;
+  return coerce(memory.get(id) || null);
 }
 
 export async function setOutcome(id: string, outcome: Outcome): Promise<StoredVerdict | null> {
@@ -164,11 +171,12 @@ export async function recentVerdicts(limit = 6): Promise<StoredVerdict[]> {
       .eq("shareable", true)
       .order("created_at", { ascending: false })
       .limit(limit);
-    return (data as StoredVerdict[]) || [];
+    return ((data as StoredVerdict[]) || []).map((v) => coerce(v) as StoredVerdict);
   }
   return Array.from(memory.values())
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((v) => coerce(v) as StoredVerdict);
 }
 
 export async function tallyForToday(): Promise<{ trashed: number; spared: number; swapped: number }> {

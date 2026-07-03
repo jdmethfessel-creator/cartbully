@@ -11,7 +11,7 @@ export default async function OgImage({ params }: { params: { id: string } }) {
   const v = await getVerdictById(params.id);
   const verdict = v?.verdict || "TRASHED";
   const title = v?.title || "Something you were about to buy";
-  const price = v?.price ?? 0;
+  const price = Number(v?.price ?? 0);
   const roast = v?.roast || "The bully was speechless. That never happens.";
   const isTrashed = verdict === "TRASHED";
   const scrawlColor = isTrashed ? "#D6231F" : "#2E7D46";
