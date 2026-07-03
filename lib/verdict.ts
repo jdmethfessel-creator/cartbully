@@ -33,6 +33,9 @@ export const verdictSchema = z.object({
       name: z.string(),
       reason: z.string(),
       est_price: z.number().nullable().optional(),
+      // venue is optional in the parsed shape for backwards compatibility with
+      // stored rows that predate this field. Sanitizer defaults it to "shopping".
+      venue: z.enum(["amazon", "shopping"]).optional(),
     })
     .nullable(),
 });
@@ -80,6 +83,12 @@ SWAP RULES (STRICT)
 - reason: one short sentence, no fluff, why this specific product beats the original.
 - If no specific named alternative exists, swap MUST be null. Do not invent brand names. Do not fill it in with a category description.
 
+VENUE RULE (STRICT)
+- Every non-null swap MUST include a venue field: "amazon" or "shopping".
+- venue: "amazon" ONLY when the named swap is a mass-market consumer product commonly sold on Amazon under its own brand and model. Think Shark, Ninja, Anker, Lodge, Instant Pot, SanDisk, Kasa, Levoit, Amazon Basics tier.
+- venue: "shopping" for everything else: appliances that ship through dealers, high-end furniture, designer bags, professional or trade equipment, luxury goods, small-batch or boutique items. Anything Amazon does not reliably carry under the exact brand and model.
+- For pro-appliance / luxury / dealer-distributed categories: prefer a mass-market comparable if one genuinely exists (venue amazon). If nothing honest fits, return swap: null. Do not force an Amazon swap for a category Amazon doesn't sell.
+
 REBUTTALS
 - If the user is fighting back, respond once in character, then hold the verdict. Don't flip your call on excuses.
 
@@ -90,7 +99,7 @@ MEANNESS DIAL
 
 OUTPUT
 - Return STRICT JSON only, no prose, no code fences, no comments, matching this shape:
-{"verdict":"TRASHED|SPARED","grade":"A|B+|B|C|D|F","roast":"...","card_line":"...","math":{"est_uses_per_year":N,"cost_per_use":"$X a use","note":"..."},"category":"...","swap":null|{"name":"Brand Product Name","reason":"...","est_price":N|null}}`;
+{"verdict":"TRASHED|SPARED","grade":"A|B+|B|C|D|F","roast":"...","card_line":"...","math":{"est_uses_per_year":N,"cost_per_use":"$X a use","note":"..."},"category":"...","swap":null|{"name":"Brand Product Name","reason":"...","est_price":N|null,"venue":"amazon|shopping"}}`;
 
 function userPrompt(input: VerdictInput): string {
   const parts = [
@@ -159,11 +168,61 @@ function isConcreteSwap(name: string): boolean {
 }
 
 // Server-side gate on the model's swap output. Bad swaps become null and the
-// beatdown page simply skips rendering the swap card.
+// beatdown page simply skips rendering the swap card. Also defaults venue to
+// "shopping" when the model omitted it, so link builders never guess Amazon.
 export function sanitizeSwap(swap: VerdictJson["swap"]): VerdictJson["swap"] {
   if (!swap) return null;
   if (!isConcreteSwap(swap.name)) return null;
-  return swap;
+  const venue = swap.venue === "amazon" ? "amazon" : "shopping";
+  return { ...swap, venue };
+}
+
+// Well-known mass-market brands that reliably show up on Amazon under their
+// own name. Used only as a legacy fallback for swaps stored before the venue
+// field existed. New engine outputs always carry venue explicitly.
+const AMAZON_STAPLE_BRANDS = [
+  "shark", "ninja", "anker", "lodge", "instant pot", "sandisk", "kasa",
+  "levoit", "amazon basics", "soundcore", "cosori", "aukey", "eufy",
+  "roborock", "wyze", "tp-link", "logitech", "razer", "corsair",
+  "keurig", "hamilton beach", "black+decker", "black and decker", "cuisinart",
+  "oxo", "yeti", "hydro flask", "contigo", "kirkland",
+];
+
+function guessVenueFromName(name: string): "amazon" | "shopping" {
+  const lower = name.toLowerCase();
+  for (const brand of AMAZON_STAPLE_BRANDS) {
+    if (lower.startsWith(brand + " ") || lower === brand) return "amazon";
+  }
+  return "shopping";
+}
+
+// Build the CTA URL + label at render time so legacy swaps route through the
+// right venue without a backfill. Amazon only when we're confident; otherwise
+// Google Shopping so users don't land on junk sponsored results.
+export function buildSwapCTA(swap: NonNullable<VerdictJson["swap"]>, amazonTag?: string | null): {
+  url: string;
+  label: string;
+  venue: "amazon" | "shopping";
+  rel: string;
+} {
+  const venue: "amazon" | "shopping" =
+    swap.venue === "amazon" || swap.venue === "shopping"
+      ? swap.venue
+      : guessVenueFromName(swap.name);
+  if (venue === "amazon") {
+    return {
+      venue,
+      url: amazonSearchUrl(swap.name, amazonTag),
+      label: "Take the cheap one",
+      rel: "nofollow sponsored noopener",
+    };
+  }
+  return {
+    venue,
+    url: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(swap.name)}`,
+    label: "Compare prices",
+    rel: "nofollow noopener",
+  };
 }
 
 export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {

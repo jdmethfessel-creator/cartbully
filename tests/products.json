@@ -5,6 +5,7 @@
     "domain": "amazon.com",
     "expect": "TRASHED",
     "swap_expect": "concrete",
+    "venue_expect": "any",
     "why": "trend item, cup duplicate, expect a named cheaper tumbler swap"
   },
   {
@@ -13,6 +14,7 @@
     "domain": "target.com",
     "expect": "SPARED",
     "swap_expect": "any",
+    "venue_expect": "any",
     "why": "genuine consumable"
   },
   {
@@ -21,6 +23,7 @@
     "domain": "tiktok.com",
     "expect": "TRASHED",
     "swap_expect": "any",
+    "venue_expect": "any",
     "why": "impulse gadget"
   },
   {
@@ -29,15 +32,35 @@
     "domain": "dyson.com",
     "expect": "TRASHED",
     "swap_expect": "concrete",
-    "why": "must return a specific named alternative like Shark FlexStyle, never null"
+    "venue_expect": "amazon",
+    "why": "must return Shark FlexStyle or similar mass-market Amazon staple"
   },
   {
-    "title": "Handcrafted teak outdoor dining table, 8-person",
-    "price": 4000.00,
-    "domain": "restorationhardware.com",
+    "title": "BlueStar RNB304BV2 30in Professional Gas Range, 4 burners",
+    "price": 8000.00,
+    "domain": "ajmadison.com",
     "expect": "TRASHED",
     "swap_expect": "concrete_or_null",
-    "why": "either a specific cheaper table or null, never a phrase"
+    "venue_expect": "amazon_or_null",
+    "why": "pro appliance not on Amazon; if a swap exists it must be mass-market (venue amazon), else null. Never a dealer-only brand."
+  },
+  {
+    "title": "RH Cloud Modular Sofa, three-piece, leather",
+    "price": 12000.00,
+    "domain": "rh.com",
+    "expect": "TRASHED",
+    "swap_expect": "concrete_or_null",
+    "venue_expect": "shopping_or_amazon_or_null",
+    "why": "designer sofa. Shopping venue acceptable when the swap is a nameable non-Amazon brand like Article Sven"
+  },
+  {
+    "title": "Handmade cedar bento box by Yamagata artisan Ishikawa Studio",
+    "price": 480.00,
+    "domain": "shopify.com",
+    "expect": "TRASHED",
+    "swap_expect": "null_only",
+    "venue_expect": "any",
+    "why": "obscure boutique, no honest mass-market equivalent, must be null"
   },
   {
     "title": "Apple AirPods Pro (2nd generation)",
@@ -45,15 +68,8 @@
     "domain": "apple.com",
     "expect": "TRASHED",
     "swap_expect": "concrete",
-    "why": "should return a named ANC earbud like Anker Soundcore Life P3 or similar named product"
-  },
-  {
-    "title": "Bespoke Japanese urushi lacquered chawan for tea ceremony, artisan",
-    "price": 680.00,
-    "domain": "shopify.com",
-    "expect": "TRASHED",
-    "swap_expect": "null_only",
-    "why": "obscure niche, no widely known cheaper named equivalent, must be null"
+    "venue_expect": "amazon",
+    "why": "should return a named ANC earbud like Anker Soundcore Life P3 sold on Amazon"
   },
   {
     "title": "Sunscreen SPF 50 6oz",
@@ -61,6 +77,7 @@
     "domain": "target.com",
     "expect": "SPARED",
     "swap_expect": "any",
+    "venue_expect": "any",
     "why": "consumable"
   },
   {
@@ -69,6 +86,7 @@
     "domain": "amazon.com",
     "expect": "TRASHED",
     "swap_expect": "any",
+    "venue_expect": "any",
     "why": "gimmick"
   },
   {
@@ -77,6 +95,7 @@
     "domain": "homedepot.com",
     "expect": "SPARED",
     "swap_expect": "any",
+    "venue_expect": "any",
     "why": "essential replacement"
   }
 ]

@@ -10,7 +10,7 @@ import FightBack from "@/components/FightBack";
 import OutcomeBlock from "@/components/OutcomeBlock";
 import LastBeatdownCookie from "@/components/LastBeatdownCookie";
 import { getVerdictById } from "@/lib/store";
-import { amazonSearchUrl } from "@/lib/verdict";
+import { buildSwapCTA } from "@/lib/verdict";
 import { SHARE_FOOTER } from "@/config";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -43,7 +43,7 @@ export default async function BeatdownPage({ params }: Params) {
 
   const tag = process.env.AMAZON_AFFILIATE_TAG || null;
   const swap = v.swap;
-  const swapUrl = swap ? amazonSearchUrl(swap.name, tag) : null;
+  const swapCTA = swap ? buildSwapCTA(swap, tag) : null;
   const timestamp = new Date(v.created_at).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -117,10 +117,12 @@ export default async function BeatdownPage({ params }: Params) {
         <p className="mt-2 text-inkSoft text-xs">Note: {v.math.note}</p>
       </section>
 
-      {swap && swapUrl && (
+      {swap && swapCTA && (
         <section className="px-5 pt-6">
           <div className="rounded border-[3px] border-swap bg-paper p-4">
-            <h3 className="font-marker text-xl text-swap">Take the cheap one and go</h3>
+            <h3 className="font-marker text-xl text-swap">
+              {swapCTA.venue === "amazon" ? "Take the cheap one and go" : "Cheaper option worth comparing"}
+            </h3>
             <p className="mt-1 font-marker text-lg text-ink">{swap.name}</p>
             {typeof swap.est_price === "number" && swap.est_price > 0 && (
               <p className="mt-1 text-sm text-inkSoft">
@@ -136,12 +138,12 @@ export default async function BeatdownPage({ params }: Params) {
             )}
             <div className="mt-3 flex gap-2">
               <a
-                href={swapUrl}
+                href={swapCTA.url}
                 target="_blank"
-                rel="nofollow sponsored noopener"
+                rel={swapCTA.rel}
                 className="inline-flex items-center justify-center bg-swap text-paper font-marker px-4 py-2 border-2 border-swap shadow-stampSm"
               >
-                Take the cheap one
+                {swapCTA.label}
               </a>
             </div>
             <p className="mt-3 text-[11px] text-inkSoft">

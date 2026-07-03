@@ -1,13 +1,13 @@
 /**
  * Manual QA harness. Runs each test product through the verdict engine and
- * prints pass/fail against expected verdict, roast guardrails, and swap-quality
- * expectations.
+ * prints pass/fail against expected verdict, roast guardrails, swap-quality,
+ * and swap-venue expectations.
  *
  * Run: npx tsx tests/run-verdicts.ts
  */
 import { readFile } from "fs/promises";
 import path from "path";
-import { runVerdict, sanitizeSwap } from "../lib/verdict";
+import { buildSwapCTA, runVerdict, sanitizeSwap } from "../lib/verdict";
 
 type Case = {
   title: string;
@@ -15,6 +15,7 @@ type Case = {
   domain: string;
   expect: "TRASHED" | "SPARED";
   swap_expect: "concrete" | "concrete_or_null" | "null_only" | "any";
+  venue_expect: "amazon" | "shopping" | "amazon_or_null" | "shopping_or_amazon_or_null" | "any";
   why: string;
 };
 
@@ -57,28 +58,48 @@ async function main() {
         swapOk = !gotConcrete;
         break;
       case "concrete_or_null":
-        // The sanitizer will drop any non-concrete swap to null, so either is fine.
-        swapOk = true;
-        break;
       case "any":
         swapOk = true;
         break;
     }
 
-    const ok = verdictOk && roastOk && cardOk && swapOk;
+    let venueOk = true;
+    if (sanitized) {
+      const cta = buildSwapCTA(sanitized);
+      switch (c.venue_expect) {
+        case "amazon":
+          venueOk = cta.venue === "amazon";
+          break;
+        case "shopping":
+          venueOk = cta.venue === "shopping";
+          break;
+        case "amazon_or_null":
+          venueOk = cta.venue === "amazon";
+          break;
+        case "shopping_or_amazon_or_null":
+        case "any":
+          venueOk = true;
+          break;
+      }
+    } else {
+      // No swap; only the "amazon" or "shopping" hard-expects fail here.
+      if (c.venue_expect === "amazon" || c.venue_expect === "shopping") venueOk = false;
+    }
+
+    const ok = verdictOk && roastOk && cardOk && swapOk && venueOk;
     if (ok) pass++;
     const status = ok ? "PASS" : "FAIL";
-    const swapDisplay = sanitized
-      ? `${sanitized.name}${sanitized.est_price ? ` $${sanitized.est_price}` : ""}`
-      : "null";
+    let swapDisplay = "null";
+    if (sanitized) {
+      const cta = buildSwapCTA(sanitized);
+      swapDisplay = `${sanitized.name}${sanitized.est_price ? ` $${sanitized.est_price}` : ""} [${cta.venue}]`;
+    }
     console.log(
       `${status.padEnd(4)}  ${c.title.slice(0, 42).padEnd(42)}  ${v.verdict}/${v.grade}  swap=${swapDisplay}`
     );
     if (!ok) {
       console.log(
-        `      verdictOk=${verdictOk} roastOk=${roastOk} cardOk=${cardOk} swapOk=${swapOk} raw_swap=${JSON.stringify(
-          v.swap
-        )}`
+        `      verdictOk=${verdictOk} roastOk=${roastOk} cardOk=${cardOk} swapOk=${swapOk} venueOk=${venueOk} raw_swap=${JSON.stringify(v.swap)}`
       );
     }
   }
