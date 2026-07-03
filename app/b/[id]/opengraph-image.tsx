@@ -16,7 +16,7 @@ export default async function OgImage({ params }: { params: { id: string } }) {
   const isTrashed = verdict === "TRASHED";
   const scrawlColor = isTrashed ? "#D6231F" : "#2E7D46";
 
-  const num = v ? parseInt(v.id.slice(-3), 36) % 999 : 1;
+  const num = v ? Math.abs(hashString(v.id)) % 999 : 1;
 
   return new ImageResponse(
     (
@@ -29,10 +29,8 @@ export default async function OgImage({ params }: { params: { id: string } }) {
           background: "#FDFBF2",
           padding: "50px 70px",
           position: "relative",
-          fontFamily: "sans-serif",
         }}
       >
-        {/* red margin line */}
         <div
           style={{
             position: "absolute",
@@ -43,58 +41,61 @@ export default async function OgImage({ params }: { params: { id: string } }) {
             background: "#E8A9A9",
           }}
         />
-        {/* header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 24, letterSpacing: 4, color: "#6D675C" }}>OFFICIAL BEATDOWN</div>
-            <div style={{ fontSize: 40, color: "#1C1A17" }}>Nº {String(num).padStart(3, "0")}</div>
+            <div style={{ fontSize: 22, letterSpacing: 4, color: "#6D675C" }}>
+              OFFICIAL BEATDOWN
+            </div>
+            <div style={{ fontSize: 38, color: "#1C1A17" }}>
+              {"No " + String(num).padStart(3, "0")}
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex" }}>
             <div style={{ fontSize: 44, color: "#1C1A17" }}>CART</div>
             <div style={{ fontSize: 44, color: "#D6231F" }}>BULLY</div>
           </div>
         </div>
 
-        {/* item */}
-        <div style={{ display: "flex", marginTop: 40, gap: 24 }}>
-          {v?.image && (
-            <div
-              style={{
-                display: "flex",
-                width: 220,
-                height: 220,
-                border: "3px solid #1C1A17",
-                background: "#FDFBF2",
-                overflow: "hidden",
-                flexShrink: 0,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={v.image}
-                alt=""
-                width={220}
-                height={220}
-                style={{ objectFit: "contain", width: "100%", height: "100%" }}
-              />
-            </div>
-          )}
+        <div style={{ display: "flex", marginTop: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <div style={{ fontSize: 36, color: "#1C1A17", lineHeight: 1.15 }}>{truncate(title, 90)}</div>
-            <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
-              <div
-                style={{
-                  fontSize: 44,
-                  color: "#6D675C",
-                  textDecoration: isTrashed ? "line-through" : "none",
-                  textDecorationColor: "#D6231F",
-                  textDecorationThickness: 6,
-                }}
-              >
-                ${price.toFixed(2)}
-              </div>
+            <div style={{ fontSize: 36, color: "#1C1A17", lineHeight: 1.15 }}>
+              {truncate(title, 90)}
+            </div>
+            <div style={{ display: "flex", marginTop: 18, alignItems: "center" }}>
+              {isTrashed ? (
+                <div
+                  style={{
+                    display: "flex",
+                    position: "relative",
+                    fontSize: 44,
+                    color: "#6D675C",
+                  }}
+                >
+                  <span>{`$${price.toFixed(2)}`}</span>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: "55%",
+                      height: 5,
+                      background: "#D6231F",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div style={{ fontSize: 44, color: "#1C1A17" }}>
+                  {`$${price.toFixed(2)}`}
+                </div>
+              )}
               {isTrashed && (
-                <div style={{ fontSize: 28, color: "#1C1A17", marginLeft: 24 }}>
+                <div style={{ fontSize: 24, color: "#1C1A17", marginLeft: 24 }}>
                   still in my pocket
                 </div>
               )}
@@ -102,12 +103,18 @@ export default async function OgImage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* scrawl */}
-        <div style={{ display: "flex", marginTop: 30, transform: "rotate(-4deg)" }}>
-          <div style={{ fontSize: 140, color: scrawlColor, letterSpacing: 4 }}>{verdict}</div>
+        <div
+          style={{
+            display: "flex",
+            marginTop: 20,
+            transform: "rotate(-4deg)",
+          }}
+        >
+          <div style={{ fontSize: 140, color: scrawlColor, letterSpacing: 4 }}>
+            {verdict}
+          </div>
         </div>
 
-        {/* roast */}
         <div
           style={{
             display: "flex",
@@ -117,18 +124,15 @@ export default async function OgImage({ params }: { params: { id: string } }) {
             fontSize: 28,
             color: "#1C1A17",
             fontStyle: "italic",
-            maxWidth: 1000,
           }}
         >
           {`"${truncate(roast, 180)}"`}
         </div>
 
-        {/* footer */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-end",
             marginTop: "auto",
           }}
         >
@@ -143,4 +147,12 @@ export default async function OgImage({ params }: { params: { id: string } }) {
 
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0;
+  }
+  return h;
 }
