@@ -12,9 +12,7 @@ export function getStripe(): Stripe | null {
 }
 
 export function stripeConfigured(): boolean {
-  return Boolean(
-    process.env.STRIPE_SECRET_KEY &&
-      process.env.STRIPE_PRICE_ID &&
-      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  );
+  // Publishable key is only needed if we later add Stripe.js/Elements.
+  // Checkout URL redirect + webhook signature verification only need the two below.
+  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
 }
