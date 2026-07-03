@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" fill="#FDFBF2"/>
+  <line x1="18" y1="0" x2="18" y2="128" stroke="#E8A9A9" stroke-width="2"/>
+  <text x="24" y="82" font-family="Permanent Marker, Comic Sans MS, cursive" font-size="60" fill="#1C1A17" transform="rotate(-6 24 82)">C</text>
+  <text x="64" y="98" font-family="Permanent Marker, Comic Sans MS, cursive" font-size="60" fill="#D6231F" transform="rotate(-6 64 98)">B</text>
+</svg>

@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Stanley Quencher H2.0 40oz Tumbler",
+    "price": 45.00,
+    "domain": "amazon.com",
+    "expect": "TRASHED",
+    "why": "trend item, cup duplicate"
+  },
+  {
+    "title": "Contact lens solution 12oz twin pack",
+    "price": 14.99,
+    "domain": "target.com",
+    "expect": "SPARED",
+    "why": "genuine consumable"
+  },
+  {
+    "title": "TikTok Shop mini portable blender",
+    "price": 29.99,
+    "domain": "tiktok.com",
+    "expect": "TRASHED",
+    "why": "impulse gadget"
+  },
+  {
+    "title": "Toothpaste 3-pack",
+    "price": 9.99,
+    "domain": "walmart.com",
+    "expect": "SPARED",
+    "why": "consumable"
+  },
+  {
+    "title": "Prime Bottle limited flavor 12-pack",
+    "price": 39.99,
+    "domain": "amazon.com",
+    "expect": "TRASHED",
+    "why": "trend hype"
+  },
+  {
+    "title": "Cast iron 10-inch skillet",
+    "price": 24.99,
+    "domain": "amazon.com",
+    "expect": "SPARED",
+    "why": "durable daily driver"
+  },
+  {
+    "title": "LED galaxy projector",
+    "price": 34.99,
+    "domain": "amazon.com",
+    "expect": "TRASHED",
+    "why": "gimmick"
+  },
+  {
+    "title": "Sunscreen SPF 50 6oz",
+    "price": 12.99,
+    "domain": "target.com",
+    "expect": "SPARED",
+    "why": "consumable"
+  },
+  {
+    "title": "Set of 12 rhinestone phone cases bundle",
+    "price": 27.00,
+    "domain": "sheini.com",
+    "expect": "TRASHED",
+    "why": "duplicate category, impulse"
+  },
+  {
+    "title": "Replacement air filter for HVAC",
+    "price": 22.00,
+    "domain": "homedepot.com",
+    "expect": "SPARED",
+    "why": "essential replacement"
+  }
+]

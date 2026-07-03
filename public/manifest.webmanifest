@@ -1,0 +1,12 @@
+{
+  "name": "CartBully",
+  "short_name": "CartBully",
+  "description": "It picks on your cart, not you.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF2",
+  "theme_color": "#D6231F",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

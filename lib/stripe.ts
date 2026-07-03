@@ -5,9 +5,8 @@ let stripe: Stripe | null = null;
 export function getStripe(): Stripe | null {
   if (!process.env.STRIPE_SECRET_KEY) return null;
   if (!stripe) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2024-06-20" as unknown as Stripe.LatestApiVersion,
-    });
+    // Rely on library default apiVersion so we don't churn on Stripe SDK bumps.
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   }
   return stripe;
 }

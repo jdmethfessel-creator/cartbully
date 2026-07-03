@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CartBully
 
-## Getting Started
+A bully that reads your cart. Paste a link. Get a verdict. Save the money.
 
-First, run the development server:
+## Quick start
 
 ```bash
+cp .env.example .env.local  # optional, app boots with zero env
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs with no env set. Verdicts fall back to a deterministic stub, payments hide,
+Supabase-backed history is skipped, price-watch cron rejects without CRON_SECRET.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| var                                    | purpose                                                    |
+| -------------------------------------- | ---------------------------------------------------------- |
+| NEXT_PUBLIC_APP_URL                    | share links, Stripe redirects                              |
+| ANTHROPIC_API_KEY                      | verdict engine (claude-sonnet-4-6)                         |
+| NEXT_PUBLIC_SUPABASE_URL / anon key    | client access                                              |
+| SUPABASE_SERVICE_ROLE_KEY              | crons, webhooks, cache                                     |
+| STRIPE_SECRET_KEY                      | Checkout + Portal                                          |
+| STRIPE_WEBHOOK_SECRET                  | webhook signature                                          |
+| NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY     | client                                                     |
+| STRIPE_PRICE_ID                        | $4.99 weekly recurring price                               |
+| RESEND_API_KEY / EMAIL_FROM            | locker drop alerts                                         |
+| CRON_SECRET                            | required by /api/cron/price-check                          |
+| AMAZON_AFFILIATE_TAG                   | optional; appended to swap search URLs                     |
 
-## Learn More
+## Migrations
 
-To learn more about Next.js, take a look at the following resources:
+The schema lives in `scratch/migration.sql`. Paste into the Supabase SQL editor.
+Never run against prod without a review.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/` home + paste field
+- `/b/[id]` public beatdown page
+- `/b/[id]/opengraph-image` share card
+- `/paywall` upgrade flow
+- `/account` Stripe portal
+- `/locker` price-watched trash
+- `/ledger` lunch-money-protected
+- `/terms`, `/privacy`
+- `/api/verdict` engine
+- `/api/rebuttal` one-shot fight back
+- `/api/detention` cooldown timer
+- `/api/checkout` Stripe session
+- `/api/portal` billing portal
+- `/api/webhook` Stripe events
+- `/api/cron/price-check` daily drop check
 
-## Deploy on Vercel
+## Content factory
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Put URLs in scripts/products.txt
+npx tsx scripts/content-factory.tsx scripts/products.txt
+# Outputs to content/YYYY-MM-DD/{slug}-card.png, -story.png, -captions.txt
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## QA
+
+- `npm run build` and `npm run lint` should both pass with no env set.
+- `npx tsx tests/run-verdicts.ts` runs 10 product cases through the engine.
+- Simulate the Stripe webhook locally: `stripe listen --forward-to localhost:3000/api/webhook`.
+- Hit the cron locally: `curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/price-check`.
+- Search for em dashes: `git grep -n '—'` should return nothing in source code.
+
+## Deploy
+
+Vercel. Import repo, paste env vars, add the cron from `vercel.json`, point `cartbully.app` at the project.
