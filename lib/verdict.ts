@@ -110,15 +110,22 @@ function userPrompt(input: VerdictInput): string {
 export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.log("verdict: no ANTHROPIC_API_KEY, using stub");
     return stubVerdict(input);
   }
   const client = new Anthropic({ apiKey });
-  const res = await client.messages.create({
-    model: VERDICT_MODEL,
-    max_tokens: VERDICT_MAX_TOKENS,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userPrompt(input) }],
-  });
+  let res;
+  try {
+    res = await client.messages.create({
+      model: VERDICT_MODEL,
+      max_tokens: VERDICT_MAX_TOKENS,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt(input) }],
+    });
+  } catch (err) {
+    console.log("verdict: anthropic error", (err as Error).message);
+    return stubVerdict(input);
+  }
   const text = res.content
     .map((c) => (c.type === "text" ? c.text : ""))
     .join("")
@@ -128,10 +135,14 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
   try {
     parsed = JSON.parse(cleaned);
   } catch {
+    console.log("verdict: JSON parse failed. raw=", text.slice(0, 200));
     return stubVerdict(input);
   }
   const check = verdictSchema.safeParse(parsed);
-  if (!check.success) return stubVerdict(input);
+  if (!check.success) {
+    console.log("verdict: schema fail", check.error.message.slice(0, 200));
+    return stubVerdict(input);
+  }
   return check.data;
 }
 
