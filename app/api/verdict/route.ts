@@ -113,6 +113,20 @@ export async function POST(req: NextRequest) {
     shareable: true,
   });
 
+  // TRASHED items get stuffed in a locker so the price-watch cron can nag them later.
+  if (judged.verdict === "TRASHED") {
+    const { supabaseService } = await import("@/lib/supabase");
+    const sb = supabaseService();
+    if (sb) {
+      await sb.from("lockers").insert({
+        verdict_id: saved.id,
+        user_or_anon_key: combined,
+        status: "watching",
+        last_price: price,
+      });
+    }
+  }
+
   await logEvent("verdict_run", { url: normalized, meanness, source: "engine" });
 
   return NextResponse.json({ id: saved.id, verdict: saved, cached: false });
