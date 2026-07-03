@@ -108,7 +108,7 @@ export default async function OgImage({ params }: { params: { id: string } }) {
             marginTop: "auto",
           }}
         >
-          <div style={{ fontSize: 22, color: "#6D675C" }}>cartbully.app</div>
+          <div style={{ fontSize: 22, color: "#6D675C" }}>cartbully.com</div>
           <div style={{ fontSize: 22, color: "#6D675C" }}>{SHARE_FOOTER}</div>
         </div>
       </div>

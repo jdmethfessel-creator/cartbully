@@ -70,4 +70,4 @@ npx tsx scripts/content-factory.tsx scripts/products.txt
 
 ## Deploy
 
-Vercel. Import repo, paste env vars, add the cron from `vercel.json`, point `cartbully.app` at the project.
+Vercel. Import repo, paste env vars, add the cron from `vercel.json`, point `cartbully.com` at the project.

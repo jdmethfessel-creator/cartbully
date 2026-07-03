@@ -154,7 +154,7 @@ async function renderCard(input: {
           {`"${truncate(input.roast, 180)}"`}
         </div>
         <div style={{ marginTop: "auto", fontSize: 22, color: "#6D675C" }}>
-          cartbully.app · It picks on your cart, not you.
+          cartbully.com · It picks on your cart, not you.
         </div>
       </div>
     ),
@@ -223,7 +223,7 @@ async function renderStory(input: {
           {`"${truncate(input.roast, 180)}"`}
         </div>
         <div style={{ marginTop: "auto", fontSize: 32, color: "#6D675C" }}>
-          cartbully.app
+          cartbully.com
         </div>
       </div>
     ),
