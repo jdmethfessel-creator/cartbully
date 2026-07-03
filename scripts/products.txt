@@ -1,0 +1,4 @@
+# One product URL per line. Blanks and lines starting with # are ignored.
+# Drop trending TikTok Shop / Amazon finds here.
+# Example (uncomment to try):
+# https://www.amazon.com/dp/B0CFTLR6H8
