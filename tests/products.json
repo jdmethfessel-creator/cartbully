@@ -4,13 +4,15 @@
     "price": 45.00,
     "domain": "amazon.com",
     "expect": "TRASHED",
-    "why": "trend item, cup duplicate"
+    "swap_expect": "concrete",
+    "why": "trend item, cup duplicate, expect a named cheaper tumbler swap"
   },
   {
     "title": "Contact lens solution 12oz twin pack",
     "price": 14.99,
     "domain": "target.com",
     "expect": "SPARED",
+    "swap_expect": "any",
     "why": "genuine consumable"
   },
   {
@@ -18,55 +20,63 @@
     "price": 29.99,
     "domain": "tiktok.com",
     "expect": "TRASHED",
+    "swap_expect": "any",
     "why": "impulse gadget"
   },
   {
-    "title": "Toothpaste 3-pack",
-    "price": 9.99,
-    "domain": "walmart.com",
-    "expect": "SPARED",
-    "why": "consumable"
-  },
-  {
-    "title": "Prime Bottle limited flavor 12-pack",
-    "price": 39.99,
-    "domain": "amazon.com",
+    "title": "Dyson Airwrap Complete Long",
+    "price": 599.99,
+    "domain": "dyson.com",
     "expect": "TRASHED",
-    "why": "trend hype"
+    "swap_expect": "concrete",
+    "why": "must return a specific named alternative like Shark FlexStyle, never null"
   },
   {
-    "title": "Cast iron 10-inch skillet",
-    "price": 24.99,
-    "domain": "amazon.com",
-    "expect": "SPARED",
-    "why": "durable daily driver"
-  },
-  {
-    "title": "LED galaxy projector",
-    "price": 34.99,
-    "domain": "amazon.com",
+    "title": "Handcrafted teak outdoor dining table, 8-person",
+    "price": 4000.00,
+    "domain": "restorationhardware.com",
     "expect": "TRASHED",
-    "why": "gimmick"
+    "swap_expect": "concrete_or_null",
+    "why": "either a specific cheaper table or null, never a phrase"
+  },
+  {
+    "title": "Apple AirPods Pro (2nd generation)",
+    "price": 249.00,
+    "domain": "apple.com",
+    "expect": "TRASHED",
+    "swap_expect": "concrete",
+    "why": "should return a named ANC earbud like Anker Soundcore Life P3 or similar named product"
+  },
+  {
+    "title": "Bespoke Japanese urushi lacquered chawan for tea ceremony, artisan",
+    "price": 680.00,
+    "domain": "shopify.com",
+    "expect": "TRASHED",
+    "swap_expect": "null_only",
+    "why": "obscure niche, no widely known cheaper named equivalent, must be null"
   },
   {
     "title": "Sunscreen SPF 50 6oz",
     "price": 12.99,
     "domain": "target.com",
     "expect": "SPARED",
+    "swap_expect": "any",
     "why": "consumable"
   },
   {
-    "title": "Set of 12 rhinestone phone cases bundle",
-    "price": 27.00,
-    "domain": "sheini.com",
+    "title": "LED galaxy projector",
+    "price": 34.99,
+    "domain": "amazon.com",
     "expect": "TRASHED",
-    "why": "duplicate category, impulse"
+    "swap_expect": "any",
+    "why": "gimmick"
   },
   {
     "title": "Replacement air filter for HVAC",
     "price": 22.00,
     "domain": "homedepot.com",
     "expect": "SPARED",
+    "swap_expect": "any",
     "why": "essential replacement"
   }
 ]

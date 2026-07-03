@@ -1,5 +1,4 @@
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 import PriceSlash from "@/components/PriceSlash";
 import HighlightSave from "@/components/HighlightSave";
 import OutcomeBlock from "@/components/OutcomeBlock";
@@ -41,8 +40,7 @@ export default async function LockerPage() {
   return (
     <PaperSurface withHoles>
       <div className="px-5">
-        <Wordmark size="sm" />
-        <h1 className="mt-6 font-marker text-3xl">Stuffed in lockers</h1>
+        <h1 className="mt-4 font-marker text-3xl">Stuffed in lockers</h1>
         <p className="mt-2 text-inkSoft">Trashed items sitting in the dark waiting to drop.</p>
 
         {rows.length === 0 ? (

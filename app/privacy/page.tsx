@@ -1,5 +1,4 @@
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 
 export const metadata = { title: "Privacy" };
 
@@ -7,8 +6,7 @@ export default function Privacy() {
   return (
     <PaperSurface withHoles>
       <div className="px-5 space-y-4">
-        <Wordmark size="sm" />
-        <h1 className="font-marker text-3xl mt-4">Privacy, kept plain.</h1>
+        <h1 className="font-marker text-3xl mt-2">Privacy, kept plain.</h1>
         <p>
           We store the URLs you paste, the verdicts we return, and lightweight event counts so we
           can improve the product. Anonymous users are tracked by a cookie identifier plus a

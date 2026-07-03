@@ -29,6 +29,7 @@ create table if not exists verdicts (
   shareable boolean not null default true,
   outcome text not null default 'unconfirmed' check (outcome in ('unconfirmed','walked_away','took_swap','bought_anyway')),
   outcome_at timestamptz,
+  card_line text,
   created_at timestamptz not null default now()
 );
 create index if not exists verdicts_user_key_idx on verdicts (user_or_anon_key, created_at desc);

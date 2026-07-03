@@ -1,5 +1,5 @@
 import { supabaseService } from "./supabase";
-import type { VerdictJson } from "./verdict";
+import { firstSentence, type VerdictJson } from "./verdict";
 
 // All persistence gated on Supabase availability. When disabled, verdicts are ephemeral,
 // cached only in an in-memory Map so a fresh dyno still functions in dev.
@@ -16,6 +16,7 @@ type StoredVerdict = {
   verdict: VerdictJson["verdict"];
   grade: VerdictJson["grade"];
   roast: string;
+  card_line: string | null;
   math: VerdictJson["math"];
   swap: VerdictJson["swap"];
   meanness: string;
@@ -26,6 +27,12 @@ type StoredVerdict = {
   outcome: Outcome;
   outcome_at: string | null;
 };
+
+// Legacy verdicts (pre card_line) fall back to the first sentence of the roast.
+export function cardLineFor(v: Pick<StoredVerdict, "card_line" | "roast">): string {
+  if (v.card_line && v.card_line.trim().length > 0) return v.card_line;
+  return firstSentence(v.roast || "").slice(0, 120);
+}
 
 const memory = new Map<string, StoredVerdict>();
 const cacheByKey = new Map<string, StoredVerdict>();
@@ -67,10 +74,13 @@ export async function findCachedVerdict(
 }
 
 export async function saveVerdict(
-  v: Omit<StoredVerdict, "id" | "created_at" | "outcome" | "outcome_at">
+  v: Omit<StoredVerdict, "id" | "created_at" | "outcome" | "outcome_at" | "card_line"> & {
+    card_line?: string | null;
+  }
 ): Promise<StoredVerdict> {
   const row: StoredVerdict = {
     ...v,
+    card_line: v.card_line ?? null,
     id: newId(),
     created_at: new Date().toISOString(),
     outcome: "unconfirmed",

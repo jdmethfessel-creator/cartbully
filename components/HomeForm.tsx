@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import MarkerButton from "./MarkerButton";
 import { FREE_BEATDOWNS } from "@/config";
 
@@ -8,6 +8,11 @@ const KEY = "cb_free_used";
 
 export default function HomeForm() {
   const [url, setUrl] = useState("");
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const q = searchParams.get("url");
+    if (q) setUrl(q);
+  }, [searchParams]);
   const [meanness, setMeanness] = useState<"mild" | "medium" | "merciless">("medium");
   const [needsPrice, setNeedsPrice] = useState(false);
   const [priceInput, setPriceInput] = useState("");

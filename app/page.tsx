@@ -1,6 +1,5 @@
 import PaperSurface from "@/components/PaperSurface";
 import StickyNote from "@/components/StickyNote";
-import Wordmark from "@/components/Wordmark";
 import HomeForm from "@/components/HomeForm";
 import LastVisitBanner from "@/components/LastVisitBanner";
 import { recentVerdicts, tallyForToday } from "@/lib/store";
@@ -20,8 +19,7 @@ export default async function Home() {
 
   return (
     <PaperSurface withHoles>
-      <header className="flex items-start justify-between px-5">
-        <Wordmark size="md" />
+      <header className="flex items-start justify-end px-5">
         <StickyNote rotate={7} className="text-sm">put it back.</StickyNote>
       </header>
 

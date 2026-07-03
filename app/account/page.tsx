@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 import MarkerButton from "@/components/MarkerButton";
 import { createClient } from "@supabase/supabase-js";
 
@@ -85,8 +84,7 @@ export default function Account() {
   return (
     <PaperSurface withHoles>
       <div className="px-5">
-        <Wordmark size="sm" />
-        <h1 className="mt-6 font-marker text-3xl">Your account</h1>
+        <h1 className="mt-4 font-marker text-3xl">Your account</h1>
 
         {session ? (
           <div className="mt-4 rounded border-2 border-ink/30 p-4">

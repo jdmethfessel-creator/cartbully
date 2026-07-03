@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Permanent_Marker, Space_Grotesk } from "next/font/google";
+import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const marker = Permanent_Marker({
@@ -42,8 +44,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${marker.variable} ${body.variable}`}>
       <body className="min-h-screen bg-hallway text-ink">
-        <div className="mx-auto max-w-[480px] min-h-screen bg-paper shadow-2xl">
-          {children}
+        <div className="mx-auto max-w-[480px] min-h-screen bg-paper shadow-2xl flex flex-col">
+          <NavBar />
+          <div className="flex-1">{children}</div>
+          <Footer />
         </div>
       </body>
     </html>

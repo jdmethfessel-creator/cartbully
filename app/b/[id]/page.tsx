@@ -4,7 +4,7 @@ import VerdictScrawl from "@/components/VerdictScrawl";
 import GradeCircle from "@/components/GradeCircle";
 import PriceSlash from "@/components/PriceSlash";
 import HighlightSave from "@/components/HighlightSave";
-import Wordmark from "@/components/Wordmark";
+import MarkerButton from "@/components/MarkerButton";
 import BeatdownActions from "@/components/BeatdownActions";
 import FightBack from "@/components/FightBack";
 import OutcomeBlock from "@/components/OutcomeBlock";
@@ -13,6 +13,7 @@ import { getVerdictById } from "@/lib/store";
 import { amazonSearchUrl } from "@/lib/verdict";
 import { SHARE_FOOTER } from "@/config";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -120,7 +121,13 @@ export default async function BeatdownPage({ params }: Params) {
         <section className="px-5 pt-6">
           <div className="rounded border-[3px] border-swap bg-paper p-4">
             <h3 className="font-marker text-xl text-swap">Take the cheap one and go</h3>
-            <p className="mt-1 text-ink">{swap.name}</p>
+            <p className="mt-1 font-marker text-lg text-ink">{swap.name}</p>
+            {typeof swap.est_price === "number" && swap.est_price > 0 && (
+              <p className="mt-1 text-sm text-inkSoft">
+                est. price <span className="font-marker text-ink">${swap.est_price.toFixed(2)}</span>{" "}
+                <span className="italic">(estimate)</span>
+              </p>
+            )}
             <p className="mt-1 text-sm text-inkSoft">{swap.reason}</p>
             {swapSaves !== null && swapSaves > 0 && (
               <p className="mt-2">
@@ -170,10 +177,22 @@ export default async function BeatdownPage({ params }: Params) {
         </p>
       </section>
 
-      <footer className="px-5 pt-10 pb-8 text-center">
-        <Wordmark size="sm" />
-        <p className="mt-1 text-inkSoft text-sm">{SHARE_FOOTER}</p>
-      </footer>
+      <section className="px-5 pt-8">
+        <div className="rounded-lg border-[3px] border-marker bg-paper p-4 text-center">
+          <p className="font-marker text-xl text-ink">Your cart got one of these coming?</p>
+          <div className="mt-3">
+            <Link href="/" aria-label="Bully your own cart">
+              <MarkerButton block variant="primary">
+                Bully your own cart
+              </MarkerButton>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="px-5 pt-6 pb-4 text-center text-inkSoft text-sm">
+        {SHARE_FOOTER}
+      </div>
     </PaperSurface>
   );
 }

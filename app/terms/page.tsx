@@ -1,5 +1,4 @@
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 
 export const metadata = { title: "Terms" };
 
@@ -7,8 +6,7 @@ export default function Terms() {
   return (
     <PaperSurface withHoles>
       <div className="px-5 space-y-4">
-        <Wordmark size="sm" />
-        <h1 className="font-marker text-3xl mt-4">Terms, kept plain.</h1>
+        <h1 className="font-marker text-3xl mt-2">Terms, kept plain.</h1>
         <p>
           CartBully is a shopping-cart roast tool. It reads a product page, estimates whether
           buying it is a good idea, and shows you a verdict. All verdicts are opinions dressed up

@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getVerdictById } from "@/lib/store";
+import { cardLineFor, getVerdictById } from "@/lib/store";
 import { SHARE_FOOTER } from "@/config";
 
 export const runtime = "nodejs";
@@ -12,7 +12,9 @@ export default async function OgImage({ params }: { params: { id: string } }) {
   const verdict = v?.verdict || "TRASHED";
   const title = v?.title || "Something you were about to buy";
   const price = Number(v?.price ?? 0);
-  const roast = v?.roast || "The bully was speechless. That never happens.";
+  const cardLine = v
+    ? cardLineFor(v)
+    : "The bully was speechless. That never happens.";
   const isTrashed = verdict === "TRASHED";
   const scrawlColor = isTrashed ? "#D6231F" : "#2E7D46";
 
@@ -126,7 +128,7 @@ export default async function OgImage({ params }: { params: { id: string } }) {
             fontStyle: "italic",
           }}
         >
-          {`"${truncate(roast, 180)}"`}
+          {`"${cardLine}"`}
         </div>
 
         <div

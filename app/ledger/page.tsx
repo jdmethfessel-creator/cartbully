@@ -1,6 +1,6 @@
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 import HighlightSave from "@/components/HighlightSave";
+import DetentionList from "@/components/DetentionList";
 import { supabaseService } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -15,11 +15,19 @@ type Row = {
   title: string;
 };
 
+type DetentionRow = {
+  id: string;
+  verdict_id: string;
+  release_at: string;
+  verdicts: { id: string; title: string; url: string } | null;
+};
+
 export default async function LedgerPage() {
   const sb = supabaseService();
   const start = new Date();
   start.setDate(start.getDate() - 7);
   let rows: Row[] = [];
+  let detentions: DetentionRow[] = [];
   if (sb) {
     const { data } = await sb
       .from("verdicts")
@@ -28,6 +36,12 @@ export default async function LedgerPage() {
       .order("created_at", { ascending: false })
       .limit(500);
     rows = (data as Row[]) || [];
+    const { data: det } = await sb
+      .from("detentions")
+      .select("id, verdict_id, release_at, verdicts(id, title, url)")
+      .order("release_at", { ascending: true })
+      .limit(50);
+    detentions = ((det as unknown as DetentionRow[]) || []).filter((r) => r.verdicts);
   }
 
   const walked = rows.filter((r) => r.outcome === "walked_away");
@@ -52,8 +66,7 @@ export default async function LedgerPage() {
   return (
     <PaperSurface withHoles>
       <div className="px-5">
-        <Wordmark size="sm" />
-        <h1 className="mt-6 font-marker text-3xl leading-tight">
+        <h1 className="mt-4 font-marker text-3xl leading-tight">
           Lunch money <br />
           <HighlightSave>protected</HighlightSave>
         </h1>
@@ -90,7 +103,15 @@ export default async function LedgerPage() {
           <Cell label="Clean streak days" value={String(streakDays)} color="text-spared" />
         </div>
 
-        <p className="mt-6 text-[11px] text-inkSoft">
+        <div className="mt-8">
+          <h2 className="font-marker text-2xl text-ink">Detention hall</h2>
+          <p className="text-inkSoft text-sm">
+            Items on a 48h cooldown. When the timer expires you get a re-verdict link.
+          </p>
+          <DetentionList rows={detentions} />
+        </div>
+
+        <p className="mt-8 text-[11px] text-inkSoft">
           Estimates only. Numbers reflect confirmed outcomes on verdicts run inside CartBully.
           Full history requires a subscription.
         </p>

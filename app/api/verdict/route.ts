@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
     verdict: judged.verdict,
     grade: judged.grade,
     roast: judged.roast,
+    card_line: judged.card_line,
     math: judged.math,
     swap: judged.swap,
     category: judged.category,

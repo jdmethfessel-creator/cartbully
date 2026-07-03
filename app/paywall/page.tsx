@@ -1,5 +1,4 @@
 import PaperSurface from "@/components/PaperSurface";
-import Wordmark from "@/components/Wordmark";
 import PaywallCTA from "@/components/PaywallCTA";
 import { PRICING, FREE_BEATDOWNS } from "@/config";
 import Link from "next/link";
@@ -8,9 +7,8 @@ export default function Paywall() {
   return (
     <PaperSurface withHoles>
       <div className="px-5">
-        <Wordmark size="sm" />
         <h1
-          className="mt-8 font-marker text-4xl text-ink"
+          className="mt-6 font-marker text-4xl text-ink"
           style={{ transform: "rotate(-1.5deg)" }}
         >
           The first {FREE_BEATDOWNS.toString()} were free.

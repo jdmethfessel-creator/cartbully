@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       verdict: prior.verdict,
       grade: prior.grade,
       roast: prior.roast,
+      card_line: prior.card_line || prior.roast.slice(0, 120),
       math: prior.math,
       swap: prior.swap,
       category: prior.category ?? "misc",
