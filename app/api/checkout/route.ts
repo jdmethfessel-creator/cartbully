@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, stripeConfigured } from "@/lib/stripe";
+import { anonKey } from "@/lib/anonId";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,8 @@ export async function POST(req: NextRequest) {
     req.headers.get("origin") ||
     `https://${req.headers.get("host")}`;
 
+  const { combined } = anonKey();
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
@@ -23,8 +26,12 @@ export async function POST(req: NextRequest) {
     cancel_url: `${origin}/paywall?canceled=1`,
     customer_email: email || undefined,
     allow_promotion_codes: true,
+    metadata: {
+      app: "cartbully",
+      anon_combined: combined || "",
+    },
     subscription_data: {
-      metadata: { app: "cartbully" },
+      metadata: { app: "cartbully", anon_combined: combined || "" },
     },
   });
   return NextResponse.json({ url: session.url });

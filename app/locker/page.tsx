@@ -2,6 +2,7 @@ import PaperSurface from "@/components/PaperSurface";
 import Wordmark from "@/components/Wordmark";
 import PriceSlash from "@/components/PriceSlash";
 import HighlightSave from "@/components/HighlightSave";
+import OutcomeBlock from "@/components/OutcomeBlock";
 import { supabaseService } from "@/lib/supabase";
 import { amazonSearchUrl } from "@/lib/verdict";
 import Link from "next/link";
@@ -20,6 +21,7 @@ type LockerRow = {
     domain: string;
     image: string | null;
     url: string;
+    outcome: "unconfirmed" | "walked_away" | "took_swap" | "bought_anyway";
   } | null;
 };
 
@@ -29,7 +31,7 @@ export default async function LockerPage() {
   if (sb) {
     const { data } = await sb
       .from("lockers")
-      .select("id, verdict_id, status, last_price, verdicts(id, title, price, domain, image, url)")
+      .select("id, verdict_id, status, last_price, verdicts(id, title, price, domain, image, url, outcome)")
       .order("created_at", { ascending: false })
       .limit(50);
     rows = ((data as unknown as LockerRow[]) || []).filter((r) => r.verdicts);
@@ -100,6 +102,9 @@ export default async function LockerPage() {
                     <Link href={`/b/${v.id}`} className="text-sm underline text-inkSoft">
                       See the beatdown
                     </Link>
+                  </div>
+                  <div className="mt-2">
+                    <OutcomeBlock id={v.id} initialOutcome={v.outcome} compact />
                   </div>
                 </li>
               );

@@ -56,25 +56,49 @@ export default async function OgImage({ params }: { params: { id: string } }) {
         </div>
 
         {/* item */}
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 40, maxWidth: 900 }}>
-          <div style={{ fontSize: 36, color: "#1C1A17", lineHeight: 1.15 }}>{truncate(title, 90)}</div>
-          <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
+        <div style={{ display: "flex", marginTop: 40, gap: 24 }}>
+          {v?.image && (
             <div
               style={{
-                fontSize: 44,
-                color: "#6D675C",
-                textDecoration: isTrashed ? "line-through" : "none",
-                textDecorationColor: "#D6231F",
-                textDecorationThickness: 6,
+                display: "flex",
+                width: 220,
+                height: 220,
+                border: "3px solid #1C1A17",
+                background: "#FDFBF2",
+                overflow: "hidden",
+                flexShrink: 0,
               }}
             >
-              ${price.toFixed(2)}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={v.image}
+                alt=""
+                width={220}
+                height={220}
+                style={{ objectFit: "contain", width: "100%", height: "100%" }}
+              />
             </div>
-            {isTrashed && (
-              <div style={{ fontSize: 28, color: "#1C1A17", marginLeft: 24 }}>
-                still in my pocket
+          )}
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <div style={{ fontSize: 36, color: "#1C1A17", lineHeight: 1.15 }}>{truncate(title, 90)}</div>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
+              <div
+                style={{
+                  fontSize: 44,
+                  color: "#6D675C",
+                  textDecoration: isTrashed ? "line-through" : "none",
+                  textDecorationColor: "#D6231F",
+                  textDecorationThickness: 6,
+                }}
+              >
+                ${price.toFixed(2)}
               </div>
-            )}
+              {isTrashed && (
+                <div style={{ fontSize: 28, color: "#1C1A17", marginLeft: 24 }}>
+                  still in my pocket
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

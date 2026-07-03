@@ -4,6 +4,8 @@ import type { VerdictJson } from "./verdict";
 // All persistence gated on Supabase availability. When disabled, verdicts are ephemeral,
 // cached only in an in-memory Map so a fresh dyno still functions in dev.
 
+export type Outcome = "unconfirmed" | "walked_away" | "took_swap" | "bought_anyway";
+
 type StoredVerdict = {
   id: string;
   url: string;
@@ -21,6 +23,8 @@ type StoredVerdict = {
   user_or_anon_key: string;
   created_at: string;
   shareable: boolean;
+  outcome: Outcome;
+  outcome_at: string | null;
 };
 
 const memory = new Map<string, StoredVerdict>();
@@ -55,11 +59,15 @@ export async function findCachedVerdict(
   return null;
 }
 
-export async function saveVerdict(v: Omit<StoredVerdict, "id" | "created_at">): Promise<StoredVerdict> {
+export async function saveVerdict(
+  v: Omit<StoredVerdict, "id" | "created_at" | "outcome" | "outcome_at">
+): Promise<StoredVerdict> {
   const row: StoredVerdict = {
     ...v,
     id: newId(),
     created_at: new Date().toISOString(),
+    outcome: "unconfirmed",
+    outcome_at: null,
   };
   const sb = supabaseService();
   if (sb) {
@@ -81,6 +89,53 @@ export async function getVerdictById(id: string): Promise<StoredVerdict | null> 
     if (data) return data as StoredVerdict;
   }
   return memory.get(id) || null;
+}
+
+export async function setOutcome(id: string, outcome: Outcome): Promise<StoredVerdict | null> {
+  const sb = supabaseService();
+  if (sb) {
+    const { data } = await sb
+      .from("verdicts")
+      .update({ outcome, outcome_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (data) {
+      cacheByKey.set(cacheKey((data as StoredVerdict).url, (data as StoredVerdict).meanness), data as StoredVerdict);
+      memory.set(id, data as StoredVerdict);
+      // bought_anyway drops the locker row
+      if (outcome === "bought_anyway") {
+        await sb.from("lockers").delete().eq("verdict_id", id);
+      }
+      return data as StoredVerdict;
+    }
+    return null;
+  }
+  const existing = memory.get(id);
+  if (!existing) return null;
+  existing.outcome = outcome;
+  existing.outcome_at = new Date().toISOString();
+  memory.set(id, existing);
+  return existing;
+}
+
+export async function unconfirmedForKey(userKey: string, limit = 1): Promise<StoredVerdict | null> {
+  const sb = supabaseService();
+  if (sb) {
+    const { data } = await sb
+      .from("verdicts")
+      .select("*")
+      .eq("user_or_anon_key", userKey)
+      .eq("outcome", "unconfirmed")
+      .order("created_at", { ascending: false })
+      .limit(limit)
+      .maybeSingle();
+    return (data as StoredVerdict) || null;
+  }
+  const arr = Array.from(memory.values())
+    .filter((v) => v.user_or_anon_key === userKey && v.outcome === "unconfirmed")
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return arr[0] || null;
 }
 
 export async function repeatCountFor(userKey: string, url: string): Promise<number> {

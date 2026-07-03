@@ -2,6 +2,7 @@ import PaperSurface from "@/components/PaperSurface";
 import StickyNote from "@/components/StickyNote";
 import Wordmark from "@/components/Wordmark";
 import HomeForm from "@/components/HomeForm";
+import LastVisitBanner from "@/components/LastVisitBanner";
 import { recentVerdicts, tallyForToday } from "@/lib/store";
 import Link from "next/link";
 
@@ -30,6 +31,8 @@ export default async function Home() {
         </h1>
         <p className="mt-3 text-inkSoft">Paste a link. Get roasted. Save the money.</p>
       </section>
+
+      <LastVisitBanner />
 
       <section className="px-5 pt-6">
         <HomeForm />

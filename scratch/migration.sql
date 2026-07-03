@@ -27,6 +27,8 @@ create table if not exists verdicts (
   meanness text not null default 'medium',
   category text default 'misc',
   shareable boolean not null default true,
+  outcome text not null default 'unconfirmed' check (outcome in ('unconfirmed','walked_away','took_swap','bought_anyway')),
+  outcome_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists verdicts_user_key_idx on verdicts (user_or_anon_key, created_at desc);

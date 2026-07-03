@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { supabaseService } from "@/lib/supabase";
+import { ensureAuthUserByEmail, mergeAnonHistoryTo } from "@/lib/mergeAnon";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
         const customerId = (s.customer as string) || "";
         const subId = (s.subscription as string) || null;
         const email = (s.customer_details?.email as string) || (s.customer_email as string) || null;
+        const anonCombined = (s.metadata?.anon_combined as string) || "";
         if (customerId) {
           await upsertSubscriber({
             email,
@@ -56,6 +58,23 @@ export async function POST(req: NextRequest) {
             status: "active",
             current_period_end: null,
           });
+        }
+        // Provision an auth user for the buyer and merge anonymous history over.
+        if (email && anonCombined) {
+          const userId = await ensureAuthUserByEmail(email);
+          const sb = supabaseService();
+          if (userId) {
+            if (sb) {
+              await sb
+                .from("subscribers")
+                .update({ user_id: userId })
+                .eq("stripe_customer_id", customerId);
+              await sb
+                .from("profiles")
+                .upsert({ id: userId, email: email.toLowerCase() }, { onConflict: "id" });
+            }
+            await mergeAnonHistoryTo(userId, anonCombined);
+          }
         }
         break;
       }
