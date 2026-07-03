@@ -3,25 +3,142 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #FDFBF2;
+  --ink: #1C1A17;
+  --marker: #D6231F;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: var(--paper);
+  color: var(--ink);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), "Space Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Notebook rule lines. Repeating gradient every 26px. */
+  .paper-rules {
+    background-color: #FDFBF2;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 25px,
+      #CFE0EE 25px,
+      #CFE0EE 26px
+    );
+  }
+
+  /* Vertical red margin line, drawn as a border-left with slight jitter shadow. */
+  .paper-margin {
+    position: relative;
+  }
+  .paper-margin::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 44px;
+    width: 2px;
+    background: #E8A9A9;
+    opacity: 0.9;
+  }
+
+  /* Spiral bind holes strip. */
+  .paper-holes {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 22px;
+    background:
+      radial-gradient(circle 6px at 11px 34px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 94px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 154px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 214px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 274px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 334px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 394px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 454px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 514px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 574px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 634px, rgba(0,0,0,0.25) 0 5px, transparent 6px),
+      radial-gradient(circle 6px at 11px 694px, rgba(0,0,0,0.25) 0 5px, transparent 6px);
+    background-repeat: repeat-y;
+  }
+
+  /* Highlighter swipe, skewed yellow behind text. */
+  .hilite-swipe {
+    background: linear-gradient(100deg, #FFE45C 0%, #FFE45C 100%);
+    padding: 0 6px;
+    transform: skew(-6deg);
+    display: inline-block;
+  }
+
+  /* Rough double underline for verdict scrawls. */
+  .scrawl-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .scrawl-underline::after {
+    content: "";
+    position: absolute;
+    left: -4px;
+    right: -8px;
+    bottom: -6px;
+    height: 6px;
+    background:
+      linear-gradient(to right, currentColor 0 40%, transparent 40% 45%, currentColor 45% 100%);
+    border-radius: 2px;
+    transform: rotate(-1.4deg);
+  }
+  .scrawl-underline::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    right: -4px;
+    bottom: -12px;
+    height: 3px;
+    background: currentColor;
+    border-radius: 2px;
+    transform: rotate(-0.8deg);
+    opacity: 0.75;
+  }
+
+  /* Marker strike-through for prices. */
+  .price-slash {
+    position: relative;
+    display: inline-block;
+    color: #6D675C;
+  }
+  .price-slash::after {
+    content: "";
+    position: absolute;
+    left: -4px;
+    right: -4px;
+    top: 55%;
+    height: 4px;
+    background: #D6231F;
+    transform: rotate(-6deg);
+    border-radius: 2px;
+  }
+
+  /* Torn paper edge helper. */
+  .torn-bottom {
+    -webkit-mask-image: linear-gradient(to bottom, black 92%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 92%, transparent 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scrawlIn, .animate-wobble {
+    animation: none !important;
   }
 }

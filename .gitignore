@@ -27,6 +27,12 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+.env.production
+
+# content factory outputs are ephemeral
+/content/*/
+!/content/.gitkeep
 
 # vercel
 .vercel
