@@ -93,10 +93,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: cached.id, verdict: cached, cached: true });
   }
 
+  // Admin bypass. Server-side only, requires an authenticated Supabase
+  // session, matches against ADMIN_EMAILS (comma-separated, case-insensitive,
+  // whitespace-trimmed). Anonymous requests can never bypass.
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isAdmin =
+    !!user?.email && adminEmails.includes(user.email.toLowerCase());
+
   // Server-side free-limit gate. Only anonymous callers hit this. Cached
-  // repeats above always bypass this.
+  // repeats above always bypass this. Admins are exempt.
   const isAnon = combined.startsWith("anon:") || combined.startsWith("fp:");
-  if (isAnon) {
+  if (!isAdmin && isAnon) {
     const sb = supabaseService();
     if (sb) {
       const { count } = await sb
@@ -174,7 +184,7 @@ export async function POST(req: NextRequest) {
   await logEvent("verdict_run", {
     url: normalized,
     source: "engine",
-    userKey: user ? "user" : "anon",
+    userKey: user ? (isAdmin ? "admin" : "user") : "anon",
   });
 
   return NextResponse.json({ id: saved.id, verdict: saved, cached: false });
