@@ -8,6 +8,7 @@ import MarkerButton from "@/components/MarkerButton";
 import BeatdownActions from "@/components/BeatdownActions";
 import FightBack from "@/components/FightBack";
 import OutcomeBlock from "@/components/OutcomeBlock";
+import OutcomeStamp from "@/components/OutcomeStamp";
 import LastBeatdownCookie from "@/components/LastBeatdownCookie";
 import { getVerdictById } from "@/lib/store";
 import { buildSwapCTA } from "@/lib/verdict";
@@ -100,9 +101,21 @@ export default async function BeatdownPage({ params }: Params) {
         </div>
       </section>
 
-      <VerdictScrawl verdict={isTrashed ? "TRASHED" : "SPARED"} size="xl" />
-      {!isTrashed && (
-        <p className="text-center text-inkSoft font-marker -mt-1">...this time.</p>
+      <div className="relative">
+        <VerdictScrawl verdict={isTrashed ? "TRASHED" : "SPARED"} size="xl" />
+        {!isTrashed && (
+          <p className="text-center text-inkSoft font-marker -mt-1">...this time.</p>
+        )}
+        {v.outcome !== "unconfirmed" && (
+          <div className="pointer-events-none absolute right-3 top-2">
+            <OutcomeStamp outcome={v.outcome} />
+          </div>
+        )}
+      </div>
+      {v.outcome === "unconfirmed" && (
+        <p className="text-center text-inkSoft text-xs -mt-3 mb-2 uppercase tracking-widest">
+          pending in the ledger
+        </p>
       )}
 
       <section className="px-5 pt-4">

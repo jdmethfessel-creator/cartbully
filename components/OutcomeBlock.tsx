@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Outcome } from "@/lib/store";
 
 type Props = {
@@ -18,6 +19,7 @@ export default function OutcomeBlock({ id, initialOutcome = "unconfirmed", compa
   const [outcome, setOutcome] = useState<Outcome>(initialOutcome);
   const [reaction, setReaction] = useState<string | null>(null);
   const [saving, setSaving] = useState<null | Exclude<Outcome, "unconfirmed">>(null);
+  const router = useRouter();
 
   async function pick(o: Exclude<Outcome, "unconfirmed">) {
     if (saving || outcome !== "unconfirmed") return;
@@ -32,6 +34,9 @@ export default function OutcomeBlock({ id, initialOutcome = "unconfirmed", compa
       if (r.ok) {
         setOutcome(o);
         setReaction(data.reaction);
+        // Refresh the server component so the stamp overlay on the beatdown
+        // card picks up the new outcome without a full page reload.
+        router.refresh();
       }
     } finally {
       setSaving(null);
@@ -45,12 +50,35 @@ export default function OutcomeBlock({ id, initialOutcome = "unconfirmed", compa
         : outcome === "took_swap"
         ? "text-swap"
         : "text-marker";
+    const border =
+      outcome === "walked_away"
+        ? "border-spared"
+        : outcome === "took_swap"
+        ? "border-swap"
+        : "border-marker";
+    if (compact) {
+      return (
+        <div className="text-sm">
+          <span className={`font-marker ${color}`}>
+            Outcome: {labels[outcome as Exclude<Outcome, "unconfirmed">]}
+          </span>
+          {reaction && <p className="mt-1 text-inkSoft italic">&ldquo;{reaction}&rdquo;</p>}
+        </div>
+      );
+    }
     return (
-      <div className={compact ? "text-sm" : "mt-3"}>
-        <span className={`font-marker ${color}`}>
-          Outcome: {labels[outcome as Exclude<Outcome, "unconfirmed">]}
-        </span>
-        {reaction && <p className="mt-1 text-inkSoft italic">&ldquo;{reaction}&rdquo;</p>}
+      <div className={`rounded border-2 ${border} bg-paper p-4`}>
+        <div className="flex items-center justify-between gap-3">
+          <span className={`font-marker text-xl ${color}`}>
+            Outcome: {labels[outcome as Exclude<Outcome, "unconfirmed">]}
+          </span>
+          <span className="font-marker text-xs uppercase tracking-widest text-inkSoft">
+            stamped
+          </span>
+        </div>
+        {reaction && (
+          <p className="mt-2 text-inkSoft italic">&ldquo;{reaction}&rdquo;</p>
+        )}
       </div>
     );
   }
@@ -75,7 +103,9 @@ export default function OutcomeBlock({ id, initialOutcome = "unconfirmed", compa
   return (
     <div className="rounded border-2 border-dashed border-ink/40 p-4 bg-paper">
       <h3 className="font-marker text-xl">So what did you do?</h3>
-      <p className="text-sm text-inkSoft">Confess. The bully is keeping score.</p>
+      <p className="text-sm text-inkSoft">
+        Confess. Pending stays pending until you stamp it. The ledger cares.
+      </p>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
           onClick={() => pick("walked_away")}
