@@ -5,8 +5,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Preview scrape used by the HomeForm before running the verdict.
-// Returns whatever the extractor found (title, image, price, currency, domain).
-// The client only shows a manual price field when price is null.
+// Returns whatever the extractor found plus a rich page_context so the
+// verdict engine can identify the product without guessing from the brand.
 export async function POST(req: NextRequest) {
   const { url } = (await req.json().catch(() => ({}))) as { url?: string };
   if (!url) return NextResponse.json({ error: "missing_url" }, { status: 400 });
@@ -25,5 +25,6 @@ export async function POST(req: NextRequest) {
     currency: data.currency,
     image: data.image,
     domain: data.domain,
+    page_context: data.page_context,
   });
 }

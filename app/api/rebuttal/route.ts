@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     domain: prior.domain,
     localHour: new Date().getHours(),
     repeatCount: 0,
+    imageUrl: prior.image,
     isRebuttal: true,
     priorVerdict: {
       verdict: prior.verdict,

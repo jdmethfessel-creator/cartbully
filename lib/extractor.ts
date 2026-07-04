@@ -1,5 +1,14 @@
-// Server-side product extractor. Fetches a URL, parses OG, JSON-LD, meta hints, title.
-// Never guesses a price. Returns { title, price, image, domain, currency }.
+// Server-side product extractor. Fetches a URL, parses OG, JSON-LD, meta hints, title,
+// and returns a rich page_context so the roast engine can identify the product
+// with more signal than just the bare title.
+
+export type PageContext = {
+  jsonLdCategory: string | null;
+  breadcrumbTrail: string[];
+  ogDescriptionFirstSentence: string | null;
+  titleTag: string | null;
+  urlPathTokens: string[];
+};
 
 export type ExtractedProduct = {
   title: string;
@@ -8,6 +17,7 @@ export type ExtractedProduct = {
   image: string | null;
   domain: string;
   canonicalUrl: string;
+  page_context: PageContext;
 };
 
 const UA =
@@ -17,6 +27,14 @@ const TRACKING_PARAMS = new Set([
   "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
   "gclid", "fbclid", "mc_cid", "mc_eid", "yclid", "msclkid", "igshid",
   "ref", "ref_", "ref_src", "share", "share_id", "src", "tag",
+]);
+
+// URL path tokens we drop because they are structural, not descriptive.
+const PATH_STOPWORDS = new Set([
+  "products", "product", "p", "shop", "store", "collections", "collection",
+  "buy", "item", "items", "detail", "details", "html", "htm", "index", "en",
+  "us", "en-us", "en_us", "www", "sku", "pdp", "browse", "category",
+  "categories", "c",
 ]);
 
 export function normalizeUrl(input: string): string {
@@ -87,23 +105,31 @@ function findJsonLd(html: string): Record<string, unknown>[] {
   return blocks;
 }
 
+function isType(block: Record<string, unknown>, wanted: string): boolean {
+  const type = block["@type"];
+  return type === wanted || (Array.isArray(type) && type.includes(wanted));
+}
+
 function findProductInJsonLd(blocks: Record<string, unknown>[]): {
   name?: string;
   price?: number;
   currency?: string;
   image?: string;
+  category?: string;
 } {
   for (const block of blocks) {
-    const type = block["@type"];
-    const isProduct =
-      type === "Product" ||
-      (Array.isArray(type) && type.includes("Product"));
-    if (!isProduct) continue;
+    if (!isType(block, "Product")) continue;
     const name = typeof block.name === "string" ? block.name : undefined;
     const image = Array.isArray(block.image)
       ? (block.image[0] as string)
       : typeof block.image === "string"
       ? (block.image as string)
+      : undefined;
+    const rawCategory = (block as { category?: unknown }).category;
+    const category = Array.isArray(rawCategory)
+      ? rawCategory.filter((c) => typeof c === "string").join(" > ")
+      : typeof rawCategory === "string"
+      ? rawCategory
       : undefined;
     const offers = block.offers as Record<string, unknown> | Record<string, unknown>[] | undefined;
     let price: number | undefined;
@@ -119,9 +145,48 @@ function findProductInJsonLd(blocks: Record<string, unknown>[]): {
     };
     if (Array.isArray(offers)) offers.forEach(readOffer);
     else if (offers) readOffer(offers);
-    return { name, price, currency, image };
+    return { name, price, currency, image, category };
   }
   return {};
+}
+
+function findBreadcrumbTrail(blocks: Record<string, unknown>[]): string[] {
+  for (const block of blocks) {
+    if (!isType(block, "BreadcrumbList")) continue;
+    const items = block.itemListElement;
+    if (!Array.isArray(items)) continue;
+    const trail: string[] = [];
+    for (const raw of items) {
+      const item = raw as { name?: unknown; item?: unknown; position?: unknown };
+      if (typeof item.name === "string") {
+        trail.push(item.name.trim());
+      } else if (item.item && typeof item.item === "object") {
+        const inner = item.item as { name?: unknown };
+        if (typeof inner.name === "string") trail.push(inner.name.trim());
+      }
+    }
+    return trail.filter(Boolean);
+  }
+  return [];
+}
+
+function tokenizeUrlPath(pathname: string): string[] {
+  return pathname
+    .split(/[\/\-_]/)
+    .map((s) => decodeURIComponent(s.trim()).toLowerCase())
+    .filter(
+      (s) =>
+        s.length > 1 &&
+        !/^\d+$/.test(s) &&
+        !PATH_STOPWORDS.has(s) &&
+        !/\.(html?|aspx?|php|jsp)$/i.test(s)
+    );
+}
+
+function firstSentence(s: string): string {
+  const trimmed = s.trim();
+  const m = trimmed.match(/^[^.!?]+[.!?]/);
+  return (m ? m[0] : trimmed).trim();
 }
 
 export async function extractProduct(url: string): Promise<ExtractedProduct> {
@@ -147,10 +212,13 @@ export async function extractProduct(url: string): Promise<ExtractedProduct> {
     clearTimeout(timeout);
   }
 
-  const jsonLd = html ? findProductInJsonLd(findJsonLd(html)) : {};
+  const blocks = html ? findJsonLd(html) : [];
+  const productLd = findProductInJsonLd(blocks);
+  const breadcrumbTrail = findBreadcrumbTrail(blocks);
 
   const ogTitle = html ? findMeta(html, "property", "og:title") : null;
   const ogImage = html ? findMeta(html, "property", "og:image") : null;
+  const ogDescription = html ? findMeta(html, "property", "og:description") : null;
   const twTitle = html ? findMeta(html, "name", "twitter:title") : null;
   const twImage = html ? findMeta(html, "name", "twitter:image") : null;
   const metaPrice =
@@ -162,19 +230,29 @@ export async function extractProduct(url: string): Promise<ExtractedProduct> {
     (html ? findMeta(html, "property", "og:price:currency") : null) ||
     "USD";
 
-  const titleTag = html
+  const rawTitleTag = html
     ? (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "")
     : "";
+  const titleTag = rawTitleTag ? decodeEntities(stripTags(rawTitleTag)) : "";
+
   const title =
-    jsonLd.name ||
+    productLd.name ||
     ogTitle ||
     twTitle ||
-    decodeEntities(stripTags(titleTag)) ||
+    titleTag ||
     domain;
 
-  const price = jsonLd.price ?? parsePrice(metaPrice);
-  const currency = jsonLd.currency || metaCurrency || "USD";
-  const image = jsonLd.image || ogImage || twImage || null;
+  const price = productLd.price ?? parsePrice(metaPrice);
+  const currency = productLd.currency || metaCurrency || "USD";
+  const image = productLd.image || ogImage || twImage || null;
+
+  const page_context: PageContext = {
+    jsonLdCategory: productLd.category ?? null,
+    breadcrumbTrail,
+    ogDescriptionFirstSentence: ogDescription ? firstSentence(ogDescription).slice(0, 300) : null,
+    titleTag: titleTag || null,
+    urlPathTokens: tokenizeUrlPath(parsed.pathname),
+  };
 
   return {
     title: title.slice(0, 200),
@@ -183,5 +261,6 @@ export async function extractProduct(url: string): Promise<ExtractedProduct> {
     image,
     domain,
     canonicalUrl,
+    page_context,
   };
 }

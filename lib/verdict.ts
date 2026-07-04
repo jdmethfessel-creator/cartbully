@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import type { PageContext } from "./extractor";
 import {
   VERDICT_MAX_TOKENS,
   VERDICT_MODEL,
@@ -66,6 +67,8 @@ export type VerdictInput = {
   domain: string;
   localHour: number;
   repeatCount: number;
+  imageUrl?: string | null;
+  pageContext?: PageContext | null;
   userNote?: string | null;
   isRebuttal?: boolean;
   priorVerdict?: VerdictJson | null;
@@ -94,10 +97,14 @@ STYLE EXAMPLES (calibrate to these two)
 - "$345 swim shorts. That is 34 book fairs. You are spending an entire elementary school's Scholastic budget to sit near a pool you do not belong at, eight times a year. That's 43 dollars a splash."
 - "$600 hairdryer. Six hundred dollars to blow hot air at your head. You couldn't get picked for the talent show and you thought a wand fixes that. 150 blowouts a year if you're honest, four bucks a puff."
 
-PRODUCT IDENTIFICATION (STRICT)
-- Derive product_type from the exact product NAME given, not the domain, not the category page, not vibes. Read the noun in the title.
-- Examples of correct identification: "Orlebar Brown Setter swim shorts" → product_type "swim shorts". "Dyson Airwrap Complete Long" → product_type "hair styling tool". "Lodge 10-inch cast iron skillet" → product_type "cast iron skillet".
-- Never substitute a different item type. If the roast mentions a noun, it must match product_type.
+PRODUCT IDENTIFICATION (STRICT, MOST IMPORTANT RULE)
+- You may receive a product IMAGE and a page_context block (JSON-LD category, breadcrumb trail, og:description first sentence, page title tag, URL path tokens).
+- product_type MUST match what is visible in the image. If text and image disagree, the IMAGE WINS. Always.
+- Never infer product_type from the brand name alone. "Setter" alone is not a product type. "Orlebar Brown Setter" alone is not either. Look at the image, the breadcrumbs, the URL path tokens, and the og:description to figure out the actual noun.
+- Preferred signal order when the image is present: image > breadcrumb trail > URL path tokens > og:description > page title tag > raw title.
+- Preferred signal order when the image is absent: breadcrumb trail > URL path tokens > og:description > page title tag > raw title. In particular, prefer URL path tokens over the bare title when the title is just a brand or model number.
+- Examples of correct identification: "Orlebar Brown Setter" with URL path tokens "setter swim shorts" and image showing shorts → product_type "swim shorts". "Dyson Airwrap Complete Long" → product_type "hair styling tool". "Lodge 10-inch cast iron skillet" → product_type "cast iron skillet".
+- Never substitute a different item type. If the roast mentions a noun, it must match product_type. If you say "swim shorts" as product_type, do not call them "shirts" in the roast.
 - category is the broader family, e.g. "menswear", "hair care", "cookware".
 
 SCORING RUBRIC (defensibility_score, integer 0 to 100)
@@ -132,14 +139,36 @@ VENUE RULE (STRICT)
 OUTPUT (STRICT JSON ONLY, NO PROSE, NO FENCES, NO COMMENTS)
 {"product_type":"...","category":"...","roast":"...","card_line":"...","estimated_uses_per_year":N,"defensibility_score":N,"swap":null|{"name":"Brand Product Name","reason":"...","est_price":N|null,"venue":"amazon|shopping"}}`;
 
-function userPrompt(input: VerdictInput): string {
+function userPrompt(input: VerdictInput, imageAvailable: boolean): string {
   const parts = [
-    `Product name: ${input.title}`,
+    `Raw product title from the page: ${input.title}`,
     `Source domain: ${input.domain}`,
     `Price: $${input.price.toFixed(2)}`,
     `Local hour (0-23): ${input.localHour}`,
     `Times this exact product has been looked at by this user: ${input.repeatCount}`,
   ];
+  if (imageAvailable) {
+    parts.push(
+      "An IMAGE of the product is included above. Use it as the primary signal for product_type."
+    );
+  } else {
+    parts.push(
+      "No image was available. Use page_context below as the primary signal for product_type, and prefer URL path tokens over the bare title."
+    );
+  }
+  const ctx = input.pageContext;
+  if (ctx) {
+    const ctxLines: string[] = ["page_context:"];
+    if (ctx.jsonLdCategory) ctxLines.push(`  jsonLdCategory: ${ctx.jsonLdCategory}`);
+    if (ctx.breadcrumbTrail.length > 0)
+      ctxLines.push(`  breadcrumbTrail: ${ctx.breadcrumbTrail.join(" > ")}`);
+    if (ctx.ogDescriptionFirstSentence)
+      ctxLines.push(`  ogDescriptionFirstSentence: ${ctx.ogDescriptionFirstSentence}`);
+    if (ctx.titleTag) ctxLines.push(`  titleTag: ${ctx.titleTag}`);
+    if (ctx.urlPathTokens.length > 0)
+      ctxLines.push(`  urlPathTokens: ${ctx.urlPathTokens.join(" ")}`);
+    if (ctxLines.length > 1) parts.push(ctxLines.join("\n"));
+  }
   if (input.userNote) parts.push(`User note: ${input.userNote}`);
   if (input.isRebuttal && input.priorVerdict) {
     parts.push(
@@ -263,6 +292,45 @@ export function verdictFromGrade(grade: Grade): VerdictLabel {
   return "TRASHED";
 }
 
+// Try to pull the product image server-side so we can pass it into the vision
+// call. Returns null on non-200, non-image content, timeout, or oversize.
+// The 4MB cap is well under Anthropic's ~5MB per-image limit for base64.
+const UA_FOR_IMAGE =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+
+type FetchedImage = { data: string; media_type: "image/jpeg" | "image/png" | "image/webp" | "image/gif" };
+
+async function fetchImageBase64(url: string): Promise<FetchedImage | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      headers: { "user-agent": UA_FOR_IMAGE, accept: "image/*,*/*;q=0.8" },
+      signal: controller.signal,
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const raw = (res.headers.get("content-type") || "").toLowerCase();
+    const mediaType: FetchedImage["media_type"] | null = raw.includes("jpeg") || raw.includes("jpg")
+      ? "image/jpeg"
+      : raw.includes("png")
+      ? "image/png"
+      : raw.includes("webp")
+      ? "image/webp"
+      : raw.includes("gif")
+      ? "image/gif"
+      : null;
+    if (!mediaType) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > 4 * 1024 * 1024) return null;
+    return { data: buf.toString("base64"), media_type: mediaType };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -271,7 +339,12 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
   }
   const client = new Anthropic({ apiKey });
 
-  const firstText = await callEngine(client, userPrompt(input));
+  // Attempt to fetch the product image server-side. If it fails (hotlink,
+  // timeout, non-image content), fall through to text-only.
+  const fetchedImage = input.imageUrl ? await fetchImageBase64(input.imageUrl) : null;
+  const imageAvailable = fetchedImage !== null;
+
+  const firstText = await callEngine(client, userPrompt(input, imageAvailable), fetchedImage);
   if (firstText === null) return stubVerdict(input);
 
   let parsed = tryParse(firstText);
@@ -284,8 +357,8 @@ export async function runVerdict(input: VerdictInput): Promise<VerdictJson> {
     typeof (parsed as { roast?: unknown }).roast === "string" &&
     (parsed as { roast: string }).roast.length > 500
   ) {
-    const compressPrompt = `${userPrompt(input)}\n\nYour previous roast was too long. Rewrite the SAME beatdown as JSON matching the same schema, but keep roast under 500 characters and card_line under 120 characters. Do not soften the take. Return JSON only.`;
-    const retry = await callEngine(client, compressPrompt);
+    const compressPrompt = `${userPrompt(input, imageAvailable)}\n\nYour previous roast was too long. Rewrite the SAME beatdown as JSON matching the same schema, but keep roast under 500 characters and card_line under 120 characters. Do not soften the take. Return JSON only.`;
+    const retry = await callEngine(client, compressPrompt, fetchedImage);
     if (retry) {
       const reparsed = tryParse(retry);
       if (reparsed) parsed = reparsed;
@@ -343,13 +416,30 @@ function assembleVerdict(engine: EngineOutput, price: number): VerdictJson {
   return full;
 }
 
-async function callEngine(client: Anthropic, prompt: string): Promise<string | null> {
+async function callEngine(
+  client: Anthropic,
+  prompt: string,
+  image: FetchedImage | null
+): Promise<string | null> {
   try {
+    const content: Anthropic.MessageParam["content"] = image
+      ? [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: image.media_type,
+              data: image.data,
+            },
+          },
+          { type: "text", text: prompt },
+        ]
+      : prompt;
     const res = await client.messages.create({
       model: VERDICT_MODEL,
       max_tokens: VERDICT_MAX_TOKENS,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     });
     return res.content
       .map((c) => (c.type === "text" ? c.text : ""))

@@ -7,12 +7,25 @@ import { createClient } from "@supabase/supabase-js";
 
 const KEY = "cb_free_used";
 
-type Preview = {
+type Phase = "idle" | "extracting" | "needsPrice" | "judging";
+
+type PageContext = {
+  jsonLdCategory: string | null;
+  breadcrumbTrail: string[];
+  ogDescriptionFirstSentence: string | null;
+  titleTag: string | null;
+  urlPathTokens: string[];
+};
+
+type ExtractResult = {
+  url: string;
   title: string;
   price: number | null;
+  currency: string;
   image: string | null;
   domain: string;
-} | null;
+  page_context: PageContext;
+};
 
 function client() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,11 +36,10 @@ function client() {
 
 export default function HomeForm() {
   const [url, setUrl] = useState("");
-  const [preview, setPreview] = useState<Preview>(null);
-  const [previewing, setPreviewing] = useState(false);
   const [priceInput, setPriceInput] = useState("");
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [extract, setExtract] = useState<ExtractResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -45,54 +57,41 @@ export default function HomeForm() {
     localStorage.setItem(KEY, String(used() + 1));
   }
 
-  async function doPreview(nextUrl: string) {
-    setPreviewing(true);
-    setError(null);
-    try {
-      const r = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: nextUrl }),
-      });
-      if (!r.ok) {
-        setPreview(null);
-        return;
-      }
-      const data = (await r.json()) as Preview;
-      setPreview(data);
-    } catch {
-      setPreview(null);
-    } finally {
-      setPreviewing(false);
-    }
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  // The whole flow, one call. Extract, gate on price, then judge.
+  async function runFullFlow(withPrice?: number) {
     setError(null);
     if (!url) return;
-
-    // If we have not previewed the URL yet, preview first so the user sees
-    // what CartBully thinks they pasted before we run the roast.
-    if (!preview || preview.title === "" ) {
-      await doPreview(url);
-      return;
-    }
-
     if (used() >= FREE_BEATDOWNS && !localStorage.getItem("cb_sub")) {
       router.push("/paywall");
       return;
     }
 
-    // Price rules: use scraped price when we have it, otherwise the manual field.
-    const effectivePrice =
-      preview.price != null ? preview.price : priceInput ? Number(priceInput) : null;
-    if (effectivePrice == null || !isFinite(effectivePrice) || effectivePrice <= 0) {
-      setError("Type the price on the page.");
+    let currentExtract = extract;
+
+    if (!currentExtract) {
+      setPhase("extracting");
+      try {
+        const r = await fetch("/api/extract", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        if (r.ok) {
+          currentExtract = (await r.json()) as ExtractResult;
+          setExtract(currentExtract);
+        }
+      } catch {
+        currentExtract = null;
+      }
+    }
+
+    const price = withPrice ?? currentExtract?.price ?? null;
+    if (price == null) {
+      setPhase("needsPrice");
       return;
     }
 
-    setLoading(true);
+    setPhase("judging");
     try {
       const sb = client();
       const session = sb ? (await sb.auth.getSession()).data.session : null;
@@ -103,9 +102,10 @@ export default function HomeForm() {
         headers,
         body: JSON.stringify({
           url,
-          priceOverride: effectivePrice,
-          titleOverride: preview.title,
-          imageOverride: preview.image,
+          priceOverride: price,
+          titleOverride: currentExtract?.title,
+          imageOverride: currentExtract?.image,
+          pageContextOverride: currentExtract?.page_context,
         }),
       });
       const data = await res.json();
@@ -115,18 +115,40 @@ export default function HomeForm() {
       }
       if (!res.ok) {
         setError("The bully choked. Try again.");
-        setLoading(false);
+        setPhase("idle");
         return;
       }
       bump();
       router.push(`/b/${data.id}`);
     } catch {
       setError("Network went sideways. Try again.");
-      setLoading(false);
+      setPhase("idle");
     }
   }
 
-  const needsPrice = preview && preview.price == null;
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (phase === "needsPrice") {
+      const p = Number(priceInput);
+      if (!isFinite(p) || p <= 0) {
+        setError("Type the price on the page.");
+        return;
+      }
+      await runFullFlow(p);
+      return;
+    }
+    await runFullFlow();
+  }
+
+  const buttonLabel =
+    phase === "extracting"
+      ? "Reading the receipt..."
+      : phase === "judging"
+      ? "Sharpening the insults..."
+      : phase === "needsPrice"
+      ? "Continue"
+      : "Bully it";
+  const busy = phase === "extracting" || phase === "judging";
 
   return (
     <form onSubmit={submit} className="space-y-3">
@@ -139,46 +161,17 @@ export default function HomeForm() {
         value={url}
         onChange={(e) => {
           setUrl(e.target.value);
-          if (preview) setPreview(null);
-        }}
-        onBlur={() => {
-          if (url && !preview) doPreview(url);
+          setExtract(null);
+          if (phase === "needsPrice") setPhase("idle");
         }}
         placeholder="https://..."
         className="w-full rounded border-2 border-ink bg-paper px-3 py-3 text-lg font-body outline-none focus:ring-2 focus:ring-marker/40"
         autoComplete="off"
         required
+        disabled={busy}
       />
 
-      {previewing && (
-        <p className="text-inkSoft text-sm">Reading the page...</p>
-      )}
-
-      {preview && (
-        <div className="rounded border-2 border-dashed border-ink/40 bg-paper p-3">
-          <div className="flex gap-3">
-            {preview.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={preview.image}
-                alt=""
-                className="h-16 w-16 object-contain border border-ink/20 bg-paper"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="text-inkSoft text-xs uppercase">{preview.domain}</div>
-              <div className="text-ink text-sm line-clamp-2">{preview.title}</div>
-              {preview.price != null && (
-                <div className="font-marker text-ink text-lg">
-                  ${preview.price.toFixed(2)}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {needsPrice && (
+      {phase === "needsPrice" && (
         <div>
           <label className="block font-marker text-lg text-ink" htmlFor="price">
             Price on the page ($)
@@ -192,14 +185,15 @@ export default function HomeForm() {
             onChange={(e) => setPriceInput(e.target.value)}
             className="w-full rounded border-2 border-ink bg-paper px-3 py-3 text-lg font-body outline-none focus:ring-2 focus:ring-marker/40"
             required
+            autoFocus
           />
         </div>
       )}
 
       {error && <p className="text-marker text-sm">{error}</p>}
 
-      <MarkerButton type="submit" variant="primary" block disabled={loading || previewing}>
-        {loading ? "Bullying..." : preview ? "Bully it" : "Read the page"}
+      <MarkerButton type="submit" variant="primary" block disabled={busy}>
+        {buttonLabel}
       </MarkerButton>
     </form>
   );

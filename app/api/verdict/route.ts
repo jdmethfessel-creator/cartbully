@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { extractProduct, normalizeUrl } from "@/lib/extractor";
+import { extractProduct, normalizeUrl, type PageContext } from "@/lib/extractor";
 import { runVerdict, verdictSchema, VerdictJson } from "@/lib/verdict";
 import { findCachedVerdict, saveVerdict, repeatCountFor, logEvent } from "@/lib/store";
 import { anonKey, mintAnonId } from "@/lib/anonId";
@@ -9,6 +9,7 @@ import { getServerUser } from "@/lib/serverAuth";
 import { FREE_BEATDOWNS } from "@/config";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 type Body = {
   url: string;
@@ -16,6 +17,7 @@ type Body = {
   priceOverride?: number;
   titleOverride?: string;
   imageOverride?: string | null;
+  pageContextOverride?: PageContext | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -36,9 +38,25 @@ export async function POST(req: NextRequest) {
   }
 
   const cached = await findCachedVerdict(normalized);
-  const extracted = await extractProduct(normalized);
+  // Reuse the client's earlier /api/extract result when both a title and a
+  // page_context arrived on the body, so we don't refetch the page twice.
+  // Fall back to a fresh extract otherwise so the API stays useful even when
+  // called without the HomeForm flow.
+  const canReuseClient = Boolean(body.titleOverride && body.pageContextOverride);
+  const extracted = canReuseClient
+    ? {
+        title: body.titleOverride || "",
+        price: body.priceOverride ?? null,
+        image: body.imageOverride ?? null,
+        domain: new URL(normalized).hostname.replace(/^www\./, ""),
+        currency: "USD",
+        canonicalUrl: normalized,
+        page_context: body.pageContextOverride ?? null,
+      }
+    : await extractProduct(normalized);
   const title = body.titleOverride?.trim() || extracted.title;
   const image = body.imageOverride ?? extracted.image;
+  const pageContext = body.pageContextOverride ?? extracted.page_context ?? null;
 
   const price = body.priceOverride ?? extracted.price;
   if (price == null) {
@@ -102,6 +120,8 @@ export async function POST(req: NextRequest) {
       domain: extracted.domain,
       localHour,
       repeatCount,
+      imageUrl: image,
+      pageContext,
       userNote: body.userNote ?? null,
     });
   } catch {
