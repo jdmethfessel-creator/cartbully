@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerdictById } from "@/lib/store";
-import { runVerdict, verdictSchema } from "@/lib/verdict";
+import { deriveProductTypeFromTitle, runVerdict, verdictSchema } from "@/lib/verdict";
 
 export const runtime = "nodejs";
 
@@ -16,13 +16,14 @@ export async function POST(req: NextRequest) {
     domain: prior.domain,
     localHour: new Date().getHours(),
     repeatCount: 0,
-    meanness: prior.meanness as "mild" | "medium" | "merciless",
     isRebuttal: true,
     priorVerdict: {
       verdict: prior.verdict,
       grade: prior.grade,
       roast: prior.roast,
       card_line: prior.card_line || prior.roast.slice(0, 120),
+      product_type: prior.product_type || deriveProductTypeFromTitle(prior.title),
+      defensibility_score: prior.defensibility_score ?? 50,
       math: prior.math,
       swap: prior.swap,
       category: prior.category ?? "misc",

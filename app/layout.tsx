@@ -27,13 +27,13 @@ export const metadata: Metadata = {
     "Paste a product link and a bully renders a verdict. Trashed, spared, or a swap. Cheaper than whatever you were about to buy.",
   openGraph: {
     title: "CartBully",
-    description: "It picks on your cart, not you.",
+    description: "Read the cart. Roast the fantasy.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "CartBully",
-    description: "It picks on your cart, not you.",
+    description: "Read the cart. Roast the fantasy.",
   },
   manifest: "/manifest.webmanifest",
 };

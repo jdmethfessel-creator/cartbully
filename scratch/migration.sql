@@ -24,16 +24,17 @@ create table if not exists verdicts (
   roast text not null,
   math jsonb not null,
   swap jsonb,
-  meanness text not null default 'medium',
   category text default 'misc',
   shareable boolean not null default true,
   outcome text not null default 'unconfirmed' check (outcome in ('unconfirmed','walked_away','took_swap','bought_anyway')),
   outcome_at timestamptz,
   card_line text,
+  product_type text,
+  defensibility_score integer,
   created_at timestamptz not null default now()
 );
 create index if not exists verdicts_user_key_idx on verdicts (user_or_anon_key, created_at desc);
-create index if not exists verdicts_url_meanness_idx on verdicts (url, meanness, created_at desc);
+create index if not exists verdicts_url_idx on verdicts (url, created_at desc);
 create index if not exists verdicts_shareable_idx on verdicts (shareable, created_at desc);
 
 -- lockers: TRASHED items being price-watched.

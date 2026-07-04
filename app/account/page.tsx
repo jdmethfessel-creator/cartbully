@@ -147,8 +147,7 @@ export default function Account() {
         </div>
 
         <p className="mt-8 text-xs text-inkSoft">
-          A subscription unlocks unlimited beatdowns, meanness dial, locker price-watch, and full
-          ledger history.
+          A subscription unlocks unlimited beatdowns, locker price-watch, and full ledger history.
         </p>
       </div>
     </PaperSurface>

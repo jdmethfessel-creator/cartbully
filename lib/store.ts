@@ -19,8 +19,9 @@ type StoredVerdict = {
   card_line: string | null;
   math: VerdictJson["math"];
   swap: VerdictJson["swap"];
-  meanness: string;
   category: string;
+  product_type: string | null;
+  defensibility_score: number | null;
   user_or_anon_key: string;
   created_at: string;
   shareable: boolean;
@@ -37,8 +38,8 @@ export function cardLineFor(v: Pick<StoredVerdict, "card_line" | "roast">): stri
 const memory = new Map<string, StoredVerdict>();
 const cacheByKey = new Map<string, StoredVerdict>();
 
-function cacheKey(url: string, meanness: string) {
-  return `${url}::${meanness}`;
+function cacheKey(url: string) {
+  return url;
 }
 
 function newId() {
@@ -52,11 +53,8 @@ function coerce(v: StoredVerdict | null | undefined): StoredVerdict | null {
   return { ...v, price: typeof v.price === "string" ? Number(v.price) : v.price };
 }
 
-export async function findCachedVerdict(
-  url: string,
-  meanness: string
-): Promise<StoredVerdict | null> {
-  const key = cacheKey(url, meanness);
+export async function findCachedVerdict(url: string): Promise<StoredVerdict | null> {
+  const key = cacheKey(url);
   const mem = cacheByKey.get(key);
   if (mem) return mem;
   const sb = supabaseService();
@@ -65,11 +63,10 @@ export async function findCachedVerdict(
     .from("verdicts")
     .select("*")
     .eq("url", url)
-    .eq("meanness", meanness)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (data) return data as StoredVerdict;
+  if (data) return coerce(data as StoredVerdict);
   return null;
 }
 
@@ -90,12 +87,13 @@ export async function saveVerdict(
   if (sb) {
     const { data, error } = await sb.from("verdicts").insert(row).select().single();
     if (!error && data) {
-      cacheByKey.set(cacheKey(row.url, row.meanness), data as StoredVerdict);
-      return data as StoredVerdict;
+      const stored = coerce(data as StoredVerdict) as StoredVerdict;
+      cacheByKey.set(cacheKey(stored.url), stored);
+      return stored;
     }
   }
   memory.set(row.id, row);
-  cacheByKey.set(cacheKey(row.url, row.meanness), row);
+  cacheByKey.set(cacheKey(row.url), row);
   return row;
 }
 
@@ -118,13 +116,14 @@ export async function setOutcome(id: string, outcome: Outcome): Promise<StoredVe
       .select()
       .single();
     if (data) {
-      cacheByKey.set(cacheKey((data as StoredVerdict).url, (data as StoredVerdict).meanness), data as StoredVerdict);
-      memory.set(id, data as StoredVerdict);
+      const stored = coerce(data as StoredVerdict) as StoredVerdict;
+      cacheByKey.set(cacheKey(stored.url), stored);
+      memory.set(id, stored);
       // bought_anyway drops the locker row
       if (outcome === "bought_anyway") {
         await sb.from("lockers").delete().eq("verdict_id", id);
       }
-      return data as StoredVerdict;
+      return stored;
     }
     return null;
   }

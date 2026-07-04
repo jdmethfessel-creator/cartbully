@@ -36,7 +36,6 @@ async function main() {
       domain: c.domain,
       localHour: 22,
       repeatCount: 1,
-      meanness: "medium",
     });
 
     const verdictOk = v.verdict === c.expect;

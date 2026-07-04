@@ -2,7 +2,7 @@
  * CartBully content factory.
  *
  * Reads a text file of product URLs (one per line, blanks and # comments ok) and
- * for each URL runs the real extractor + verdict engine at merciless meanness,
+ * for each URL runs the real extractor + verdict engine,
  * then writes to /content/YYYY-MM-DD/:
  *   - {slug}-card.png       (1200x630 beatdown card)
  *   - {slug}-story.png      (1080x1920 vertical crop of the same content)
@@ -19,8 +19,6 @@ import path from "path";
 import { extractProduct } from "../lib/extractor";
 import { runVerdict } from "../lib/verdict";
 import { ImageResponse } from "next/og";
-
-const MEANNESS = "merciless" as const;
 
 async function main() {
   const listPath = process.argv[2];
@@ -53,7 +51,6 @@ async function main() {
         domain: p.domain,
         localHour: 22,
         repeatCount: 1,
-        meanness: MEANNESS,
       });
 
       const slug = slugify(p.title);
@@ -154,7 +151,7 @@ async function renderCard(input: {
           {`"${truncate(input.roast, 180)}"`}
         </div>
         <div style={{ marginTop: "auto", fontSize: 22, color: "#6D675C" }}>
-          cartbully.com · It picks on your cart, not you.
+          cartbully.com · Read the cart. Roast the fantasy.
         </div>
       </div>
     ),

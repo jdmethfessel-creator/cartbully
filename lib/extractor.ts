@@ -130,7 +130,7 @@ export async function extractProduct(url: string): Promise<ExtractedProduct> {
   const domain = parsed.hostname.replace(/^www\./, "");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 5_000);
   let html = "";
   try {
     const res = await fetch(canonicalUrl, {

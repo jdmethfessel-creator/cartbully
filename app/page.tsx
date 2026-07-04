@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const slogans = [
   "Finally, a bully on your side.",
-  "It picks on your cart, not you.",
+  "Read the cart. Roast the fantasy.",
   "Protecting your lunch money since day one.",
 ];
 

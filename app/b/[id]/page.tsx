@@ -11,7 +11,6 @@ import OutcomeBlock from "@/components/OutcomeBlock";
 import LastBeatdownCookie from "@/components/LastBeatdownCookie";
 import { getVerdictById } from "@/lib/store";
 import { buildSwapCTA } from "@/lib/verdict";
-import { SHARE_FOOTER } from "@/config";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -55,7 +54,15 @@ export default async function BeatdownPage({ params }: Params) {
 
   return (
     <PaperSurface withHoles>
-      <header className="flex items-start justify-between px-5">
+      <div className="px-5 pt-4">
+        <Link href="/" aria-label="Bully another product">
+          <MarkerButton variant="primary" block>
+            Bully another
+          </MarkerButton>
+        </Link>
+      </div>
+
+      <header className="flex items-start justify-between px-5 pt-6">
         <div>
           <div className="text-xs uppercase tracking-widest text-inkSoft">
             Caught at checkout
@@ -65,9 +72,14 @@ export default async function BeatdownPage({ params }: Params) {
         <GradeCircle grade={v.grade} />
       </header>
 
-      <section className="px-5 pt-6">
+      <section className="px-5 pt-4">
         <div className="text-inkSoft text-xs uppercase">from {v.domain}</div>
         <h1 className="mt-1 font-marker text-3xl leading-tight text-ink">{v.title}</h1>
+        {v.product_type && (
+          <div className="mt-1 text-inkSoft text-xs uppercase tracking-widest">
+            item type: {v.product_type}
+          </div>
+        )}
         {v.image && (
           <div className="mt-3 overflow-hidden rounded border-2 border-ink/20 bg-paper">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -172,29 +184,12 @@ export default async function BeatdownPage({ params }: Params) {
       <FightBack id={v.id} />
       <LastBeatdownCookie id={v.id} title={v.title} />
 
-      <section className="px-5 pt-6">
+      <section className="px-5 pt-6 pb-8">
         <p className="text-[11px] text-inkSoft">
           CartBully is entertainment with math in it. Verdicts are opinions, savings figures are
           estimates.
         </p>
       </section>
-
-      <section className="px-5 pt-8">
-        <div className="rounded-lg border-[3px] border-marker bg-paper p-4 text-center">
-          <p className="font-marker text-xl text-ink">Your cart got one of these coming?</p>
-          <div className="mt-3">
-            <Link href="/" aria-label="Bully your own cart">
-              <MarkerButton block variant="primary">
-                Bully your own cart
-              </MarkerButton>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <div className="px-5 pt-6 pb-4 text-center text-inkSoft text-sm">
-        {SHARE_FOOTER}
-      </div>
     </PaperSurface>
   );
 }

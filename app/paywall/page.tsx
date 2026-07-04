@@ -14,7 +14,7 @@ export default function Paywall() {
           The first {FREE_BEATDOWNS.toString()} were free.
         </h1>
         <p className="mt-3 text-inkSoft text-lg">
-          Unlimited beatdowns, the full ledger, locker price-watch, and the meanness dial.
+          Unlimited beatdowns, the full ledger, and locker price-watch.
         </p>
         <p className="mt-2 text-ink text-lg">
           {PRICING.display}. Cheaper than whatever you were about to buy.
@@ -31,11 +31,11 @@ export default function Paywall() {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-marker text-marker text-xl">✓</span>
-            <span>Meanness dial (mild, medium, merciless)</span>
+            <span>Full ledger history</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-marker text-marker text-xl">✓</span>
-            <span>Full ledger history</span>
+            <span>Detention timers and re-verdict prompts</span>
           </div>
         </div>
 

@@ -5,15 +5,17 @@ import { runVerdict, verdictSchema, VerdictJson } from "@/lib/verdict";
 import { findCachedVerdict, saveVerdict, repeatCountFor, logEvent } from "@/lib/store";
 import { anonKey, mintAnonId } from "@/lib/anonId";
 import { supabaseService } from "@/lib/supabase";
-import { FREE_BEATDOWNS, MEANNESS_DEFAULT, Meanness } from "@/config";
+import { getServerUser } from "@/lib/serverAuth";
+import { FREE_BEATDOWNS } from "@/config";
 
 export const runtime = "nodejs";
 
 type Body = {
   url: string;
-  meanness?: Meanness;
   userNote?: string;
   priceOverride?: number;
+  titleOverride?: string;
+  imageOverride?: string | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -33,22 +35,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "bad_url" }, { status: 400 });
   }
 
-  const meanness: Meanness = body.meanness || MEANNESS_DEFAULT;
-  const cached = await findCachedVerdict(normalized, meanness);
+  const cached = await findCachedVerdict(normalized);
   const extracted = await extractProduct(normalized);
+  const title = body.titleOverride?.trim() || extracted.title;
+  const image = body.imageOverride ?? extracted.image;
 
   const price = body.priceOverride ?? extracted.price;
   if (price == null) {
     return NextResponse.json(
       {
         error: "need_price",
-        product: { title: extracted.title, image: extracted.image, domain: extracted.domain },
+        product: { title, image, domain: extracted.domain },
       },
       { status: 422 }
     );
   }
 
-  // ensure anon cookie exists
+  // Ensure anon cookie exists, mint one if missing.
   const jar = cookies();
   let currentAnon = jar.get("cb_anon")?.value;
   if (!currentAnon) {
@@ -60,16 +63,20 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 365,
     });
   }
-  const { combined } = anonKey();
+
+  // Prefer the authenticated user id when present, so logged-in beatdowns
+  // auto-save into that user's ledger. Falls back to the anon combined key.
+  const user = await getServerUser(req);
+  const anon = anonKey();
+  const combined = user ? `user:${user.id}` : anon.combined;
 
   if (cached) {
-    await logEvent("verdict_run", { url: normalized, meanness, source: "cache" });
+    await logEvent("verdict_run", { url: normalized, source: "cache" });
     return NextResponse.json({ id: cached.id, verdict: cached, cached: true });
   }
 
-  // Server-side free-limit gate. Runs when Supabase is configured and the
-  // caller is anonymous (no user:<uid> combined key). Cached repeats above
-  // are always free, so this counts distinct fresh verdicts only.
+  // Server-side free-limit gate. Only anonymous callers hit this. Cached
+  // repeats above always bypass this.
   const isAnon = combined.startsWith("anon:") || combined.startsWith("fp:");
   if (isAnon) {
     const sb = supabaseService();
@@ -90,22 +97,20 @@ export async function POST(req: NextRequest) {
   let judged: VerdictJson;
   try {
     judged = await runVerdict({
-      title: extracted.title,
+      title,
       price,
       domain: extracted.domain,
       localHour,
       repeatCount,
-      meanness,
       userNote: body.userNote ?? null,
     });
   } catch {
     judged = (await import("@/lib/verdict")).stubVerdict({
-      title: extracted.title,
+      title,
       price,
       domain: extracted.domain,
       localHour,
       repeatCount,
-      meanness,
     });
   }
 
@@ -116,9 +121,9 @@ export async function POST(req: NextRequest) {
 
   const saved = await saveVerdict({
     url: normalized,
-    title: extracted.title,
+    title,
     price,
-    image: extracted.image,
+    image,
     domain: extracted.domain,
     verdict: judged.verdict,
     grade: judged.grade,
@@ -127,14 +132,14 @@ export async function POST(req: NextRequest) {
     math: judged.math,
     swap: judged.swap,
     category: judged.category,
-    meanness,
+    product_type: judged.product_type,
+    defensibility_score: judged.defensibility_score,
     user_or_anon_key: combined,
     shareable: true,
   });
 
-  // TRASHED items get stuffed in a locker so the price-watch cron can nag them later.
+  // TRASHED items get stuffed in a locker so the price-watch cron can nag later.
   if (judged.verdict === "TRASHED") {
-    const { supabaseService } = await import("@/lib/supabase");
     const sb = supabaseService();
     if (sb) {
       await sb.from("lockers").insert({
@@ -146,7 +151,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await logEvent("verdict_run", { url: normalized, meanness, source: "engine" });
+  await logEvent("verdict_run", {
+    url: normalized,
+    source: "engine",
+    userKey: user ? "user" : "anon",
+  });
 
   return NextResponse.json({ id: saved.id, verdict: saved, cached: false });
 }

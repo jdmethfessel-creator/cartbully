@@ -9,7 +9,6 @@ export default function BeatdownActions({ id, verdict, url }: Props) {
   const [saving, setSaving] = useState(false);
 
   const shareUrl = typeof window !== "undefined" ? `${location.origin}/b/${id}` : `/b/${id}`;
-  const cardUrl = `/b/${id}/opengraph-image`;
 
   async function share() {
     const payload = {
@@ -17,7 +16,6 @@ export default function BeatdownActions({ id, verdict, url }: Props) {
       text: "The bully has spoken.",
       url: shareUrl,
     };
-    // Web Share API on mobile
     if (typeof navigator !== "undefined" && (navigator as Navigator).share) {
       try {
         await (navigator as Navigator).share(payload);
@@ -50,9 +48,6 @@ export default function BeatdownActions({ id, verdict, url }: Props) {
     <div className="grid grid-cols-2 gap-3">
       <MarkerButton variant="secondary" onClick={share}>
         Share the beatdown
-      </MarkerButton>
-      <MarkerButton variant="secondary" as="a" href={cardUrl} target="_blank" rel="noopener">
-        Save the card
       </MarkerButton>
       {verdict === "SPARED" ? (
         <>
