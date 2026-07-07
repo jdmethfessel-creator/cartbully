@@ -7,8 +7,10 @@ create extension if not exists pgcrypto;
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique,
+  price_alerts_unsubscribed boolean not null default false,
   created_at timestamptz not null default now()
 );
+alter table profiles add column if not exists price_alerts_unsubscribed boolean not null default false;
 
 -- verdicts: the canonical record of every beatdown.
 create table if not exists verdicts (

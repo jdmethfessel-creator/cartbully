@@ -181,7 +181,7 @@ export default async function BeatdownPage({ params }: Params) {
       {isTrashed && (
         <section className="px-5 pt-6">
           <div className="rounded bg-hilite/50 border-2 border-ink/20 p-3 font-marker text-ink">
-            Stuffed that item in a locker. If the price ever begs, you&apos;ll hear about it.
+            Stuffed that item in a locker. If the price ever drops, you&apos;ll hear about it.
           </div>
         </section>
       )}
